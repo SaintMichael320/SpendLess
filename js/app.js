@@ -125,7 +125,6 @@ function submitTx(type) {
 
   state.transactions.unshift({ id: Date.now(), type, amount, cat, note, date: new Date().toISOString() });
 
-  // When income is logged, distribute to buckets
   if (type === 'income' && state.buckets.length) {
     distributeToBuckets(amount);
   }
@@ -144,10 +143,8 @@ function daysUntilDue(dueDay) {
   const day   = now.getDate();
   const month = now.getMonth();
   const year  = now.getFullYear();
-
-  let target = new Date(year, month, dueDay);
+  let target  = new Date(year, month, dueDay);
   if (dueDay <= day) target = new Date(year, month + 1, dueDay);
-
   return Math.ceil((target - now) / (1000 * 60 * 60 * 24));
 }
 
@@ -171,7 +168,10 @@ function renderHome() {
 
   const income  = todayTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const expense = todayTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-  const balance   = income - expense;
+
+  // Subtract bucket payments from balance — money moved to savings isn't "free" cash
+  const bucketsPaid = state.buckets.reduce((s, b) => s + (b.paidAmount || 0), 0);
+  const balance   = income - expense - bucketsPaid;
   const remaining = limit - expense;
   const pct       = Math.min(100, Math.round((expense / limit) * 100));
   const stCls     = pct >= 100 ? 'over' : pct >= 75 ? 'warn' : 'ok';
@@ -192,7 +192,7 @@ function renderHome() {
   remEl.textContent = (remaining < 0 ? '-' : '') + fmt(remaining);
 
   const bar = document.getElementById('prog');
-  bar.className  = 'progress-fill ' + stCls;
+  bar.className   = 'progress-fill ' + stCls;
   bar.style.width = pct + '%';
 
   const alertEl = document.getElementById('alert');
@@ -250,15 +250,18 @@ function renderBucketsWidget() {
     <div class="buckets-widget" style="margin-top:10px;">
       <div class="buckets-widget-label">Buckets</div>
       <div class="buckets-widget-grid">
-        ${state.buckets.map(b => `
-          <div class="bucket-widget-card">
-            <div class="bucket-widget-top">
-              <span class="bucket-widget-emoji">${b.emoji || '🪣'}</span>
-              <span class="bucket-widget-name">${b.name}</span>
-            </div>
-            <div class="bucket-widget-amount">${fmt(b.balance || 0)}</div>
-            <div class="bucket-widget-pct">${b.pct}% of income</div>
-          </div>`).join('')}
+        ${state.buckets.map(b => {
+          const pending = (b.balance || 0) - (b.paidAmount || 0);
+          return `
+            <div class="bucket-widget-card">
+              <div class="bucket-widget-top">
+                <span class="bucket-widget-emoji">${b.emoji || '🪣'}</span>
+                <span class="bucket-widget-name">${b.name}</span>
+              </div>
+              <div class="bucket-widget-amount">${fmt(b.paidAmount || 0)}</div>
+              <div class="bucket-widget-pct">${b.pct}% · ${pending > 0 ? fmt(pending) + ' pending' : 'all transferred'}</div>
+            </div>`;
+        }).join('')}
       </div>
     </div>`;
 }
@@ -300,8 +303,8 @@ function renderBills() {
 
   document.getElementById('bills-list').innerHTML = sorted.length
     ? sorted.map(b => {
-        const days = daysUntilDue(b.dueDay);
-        const cls  = b.paid ? 'ok' : dueCls(days);
+        const days    = daysUntilDue(b.dueDay);
+        const cls     = b.paid ? 'ok' : dueCls(days);
         const cardCls = b.paid ? '' : (cls === 'urgent' ? 'urgent' : cls === 'soon' ? 'soon' : '');
         return `
           <div class="bill-card ${cardCls}">
@@ -355,22 +358,16 @@ function saveBill() {
 }
 
 function toggleBillPaid(id) {
-  const bill = state.bills.find(b => b.id === id);
+  const bill     = state.bills.find(b => b.id === id);
   if (!bill) return;
-
   const nowMonth = new Date().toISOString().slice(0, 7);
 
   if (!bill.paid) {
     bill.paid      = true;
     bill.paidMonth = nowMonth;
-    // Auto-log as expense
     state.transactions.unshift({
-      id:     Date.now(),
-      type:   'expense',
-      amount: bill.amount,
-      cat:    'Other',
-      note:   bill.name + ' (bill)',
-      date:   new Date().toISOString()
+      id: Date.now(), type: 'expense', amount: bill.amount,
+      cat: 'Other', note: bill.name + ' (bill)', date: new Date().toISOString()
     });
   } else {
     bill.paid      = false;
@@ -388,7 +385,6 @@ function deleteBill(id) {
   renderBills();
 }
 
-// Auto-reset bills at start of each new month
 function checkBillReset() {
   const nowMonth = new Date().toISOString().slice(0, 7);
   state.bills.forEach(b => {
@@ -401,11 +397,10 @@ function checkBillReset() {
 
 // ── BUCKETS SCREEN ───────────────────────
 function renderBuckets() {
-  const totalPct = state.buckets.reduce((s, b) => s + b.pct, 0);
+  const totalPct  = state.buckets.reduce((s, b) => s + b.pct, 0);
   const remaining = 100 - totalPct;
 
-  // Percentage bar
-  const barEl = document.getElementById('pct-remaining-bar');
+  const barEl    = document.getElementById('pct-remaining-bar');
   const segments = state.buckets.map((b, i) =>
     `<div class="pct-bar-fill" style="width:${b.pct}%;background:${BUCKET_COLORS[i % BUCKET_COLORS.length]}"></div>`
   ).join('');
@@ -417,12 +412,15 @@ function renderBuckets() {
       <span class="${remaining < 0 ? 'over' : 'ok'}">${Math.abs(remaining)}% ${remaining < 0 ? 'over!' : 'remaining'}</span>
     </div>`;
 
-  // Bucket cards
   const listEl = document.getElementById('buckets-list');
   listEl.innerHTML = state.buckets.length
     ? state.buckets.map((b, i) => {
-        const color    = BUCKET_COLORS[i % BUCKET_COLORS.length];
-        const fillPct  = b.balance && b.totalReceived ? Math.min(100, Math.round((b.balance / b.totalReceived) * 100)) : 100;
+        const color      = BUCKET_COLORS[i % BUCKET_COLORS.length];
+        const allocated  = b.balance || 0;
+        const paid       = b.paidAmount || 0;
+        const pending    = allocated - paid;
+        const fillPct    = allocated > 0 ? Math.min(100, Math.round((paid / allocated) * 100)) : 0;
+
         return `
           <div class="bucket-card">
             <div class="bucket-card-top">
@@ -434,17 +432,54 @@ function renderBuckets() {
                 </div>
               </div>
               <div class="bucket-card-right">
-                <div class="bucket-card-amount" style="color:${color}">${fmt(b.balance || 0)}</div>
-                <div class="bucket-card-of">received ${fmt(b.totalReceived || 0)}</div>
+                <div class="bucket-card-amount" style="color:${color}">${fmt(paid)}</div>
+                <div class="bucket-card-of">of ${fmt(allocated)} allocated</div>
               </div>
             </div>
             <div class="bucket-card-bar-track">
               <div class="bucket-card-bar-fill" style="width:${fillPct}%;background:${color}"></div>
             </div>
-            <button class="bucket-delete-btn" onclick="deleteBucket(${i})" style="margin-top:8px;float:right">✕ Remove</button>
+            <div class="bucket-card-footer">
+              ${pending > 0
+                ? `<span class="bucket-pending">${fmt(pending)} pending transfer</span>
+                   <button class="bucket-pay-btn" onclick="markBucketPaid('${b.id}')">Mark Paid</button>`
+                : `<span class="bucket-done">✓ Fully transferred</span>
+                   <button class="bucket-unpay-btn" onclick="unmarkBucketPaid('${b.id}')">Undo</button>`
+              }
+              <button class="bucket-delete-btn" onclick="deleteBucket(${i})">✕ Remove</button>
+            </div>
           </div>`;
       }).join('')
     : '<div class="tx-empty" style="padding:40px 0">No buckets yet — add one below</div>';
+}
+
+// ── BUCKET PAID / UNPAID ─────────────────
+function markBucketPaid(id) {
+  const b = state.buckets.find(bk => bk.id === id);
+  if (!b) return;
+  const pending = (b.balance || 0) - (b.paidAmount || 0);
+  if (pending <= 0) return;
+
+  b.paidAmount = (b.paidAmount || 0) + pending;
+
+  // Log as expense so it shows in transactions and affects balance
+  state.transactions.unshift({
+    id: Date.now(), type: 'expense', amount: pending,
+    cat: 'Other', note: b.name + ' (bucket transfer)', date: new Date().toISOString()
+  });
+
+  saveState();
+  renderBuckets();
+  renderHome();
+}
+
+function unmarkBucketPaid(id) {
+  const b = state.buckets.find(bk => bk.id === id);
+  if (!b) return;
+  b.paidAmount = 0;
+  saveState();
+  renderBuckets();
+  renderHome();
 }
 
 // ── ADD BUCKET ───────────────────────────
@@ -474,7 +509,10 @@ function saveBucket() {
     return;
   }
 
-  state.buckets.push({ id: Date.now().toString(), name, emoji, pct, balance: 0, totalReceived: 0 });
+  state.buckets.push({
+    id: Date.now().toString(), name, emoji, pct,
+    balance: 0, totalReceived: 0, paidAmount: 0
+  });
   saveState();
   closeModal('modal-bucket');
   renderBuckets();
@@ -490,7 +528,7 @@ function deleteBucket(index) {
 // ── DISTRIBUTE INCOME TO BUCKETS ─────────
 function distributeToBuckets(amount) {
   state.buckets.forEach(b => {
-    const share = Math.round(amount * (b.pct / 100));
+    const share     = Math.round(amount * (b.pct / 100));
     b.balance       = (b.balance || 0) + share;
     b.totalReceived = (b.totalReceived || 0) + share;
   });
@@ -543,9 +581,9 @@ function renderHistory() {
 
 // ── SETTINGS ────────────────────────────
 function renderSettings() {
-  document.getElementById('limit-input').value      = state.settings.dailyLimit;
-  document.getElementById('stat-total').textContent = state.transactions.length;
-  document.getElementById('stat-days').textContent  = new Set(state.transactions.map(t => new Date(t.date).toDateString())).size;
+  document.getElementById('limit-input').value        = state.settings.dailyLimit;
+  document.getElementById('stat-total').textContent   = state.transactions.length;
+  document.getElementById('stat-days').textContent    = new Set(state.transactions.map(t => new Date(t.date).toDateString())).size;
   document.getElementById('stat-bills').textContent   = state.bills.length;
   document.getElementById('stat-buckets').textContent = state.buckets.length;
   const allExp = state.transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);

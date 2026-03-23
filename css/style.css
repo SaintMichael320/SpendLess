@@ -25,7 +25,8 @@
 }
 
 html, body {
-  height: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
   background: var(--bg);
   color: var(--text);
   font-family: 'Space Grotesk', sans-serif;
@@ -35,18 +36,21 @@ html, body {
 
 /* ── APP SHELL ── */
 #app {
-  height: 100dvh;
   display: flex;
   flex-direction: column;
+  height: 100dvh;
+  max-height: 100dvh;
   max-width: 430px;
   margin: 0 auto;
-  position: relative;
+  overflow: hidden;
 }
 
 .screen {
   display: none;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
+  max-height: 100dvh;
   overflow: hidden;
 }
 
@@ -54,9 +58,10 @@ html, body {
 
 .screen-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 14px 14px 80px;
+  padding: 14px 14px 24px;
 }
 
 /* ── STATUS BAR ── */
@@ -94,8 +99,10 @@ html, body {
 .balance-big {
   font-size: 40px;
   font-weight: 700;
-  letter-spacing: -2px;
+  letter-spacing: -1px;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "zero" 1;
 }
 
 .balance-meta {
@@ -208,6 +215,14 @@ html, body {
 .alert-warn { background: var(--amber-bg); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
 .alert-over { background: var(--red-bg);   color: var(--red);   border: 1px solid rgba(239,68,68,0.25); }
 
+/* ── HOME SCROLL ── */
+.home-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 /* ── BILLS WIDGET (home) ── */
 .bills-widget {
   margin: 10px 14px 0;
@@ -275,27 +290,22 @@ html, body {
   margin-bottom: 6px;
 }
 
-.bucket-widget-emoji { font-size: 16px; }
-.bucket-widget-name  { font-size: 12px; color: var(--text2); }
+.bucket-widget-emoji  { font-size: 16px; }
+.bucket-widget-name   { font-size: 12px; color: var(--text2); }
 .bucket-widget-amount { font-size: 18px; font-weight: 700; color: var(--green); }
-.bucket-widget-pct  { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.bucket-widget-pct    { font-size: 11px; color: var(--text3); margin-top: 2px; }
 
-/* ── TX LIST ── */
+/* ── SECTION LABEL ── */
 .section-label {
   padding: 14px 20px 8px;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.15em;
   color: var(--text3);
-  flex-shrink: 0;
 }
 
-.tx-list {
-  padding: 0 14px;
-  flex: 1;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
+/* ── TX LIST ── */
+.tx-list { padding: 0 14px 12px; }
 
 .tx-empty { padding: 32px 0; text-align: center; color: var(--text3); font-size: 13px; }
 
@@ -374,7 +384,7 @@ html, body {
 
 .form-body {
   padding: 16px; display: flex; flex-direction: column; gap: 14px;
-  flex: 1; overflow-y: auto;
+  flex: 1; min-height: 0; overflow-y: auto;
 }
 
 .field-label {
@@ -506,8 +516,7 @@ html, body {
 
 /* ── BUCKETS SCREEN ── */
 .buckets-explainer {
-  font-size: 13px; color: var(--text2); margin-bottom: 14px;
-  line-height: 1.5;
+  font-size: 13px; color: var(--text2); margin-bottom: 14px; line-height: 1.5;
 }
 
 .pct-bar-wrap { margin-bottom: 14px; }
@@ -615,8 +624,11 @@ html, body {
 
 /* ── HISTORY ── */
 .history-list {
-  padding: 0 14px 24px; flex: 1; overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   overscroll-behavior: contain;
+  padding: 0 14px 24px;
 }
 
 .history-day-label {
@@ -626,13 +638,20 @@ html, body {
 
 /* ── SETTINGS ── */
 .settings-body {
-  padding: 20px 16px; flex: 1; display: flex;
-  flex-direction: column; gap: 20px; overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .settings-section {
   background: var(--surface); border-radius: 18px;
   border: 1px solid var(--border); overflow: hidden;
+  flex-shrink: 0;
 }
 
 .settings-row {
@@ -654,14 +673,16 @@ html, body {
   width: 100%; padding: 14px; border-radius: 14px;
   border: 1px solid rgba(239,68,68,0.3); background: var(--red-bg);
   color: var(--red); font-family: inherit; font-size: 14px;
-  font-weight: 600; cursor: pointer;
+  font-weight: 600; cursor: pointer; flex-shrink: 0;
 }
 
 .danger-btn:active { opacity: 0.7; }
 
 /* ── NAV BAR ── */
 .nav {
-  display: flex; border-top: 1px solid var(--border); flex-shrink: 0;
+  display: flex;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .nav-btn {

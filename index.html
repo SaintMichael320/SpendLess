@@ -37,8 +37,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Daily limit card -->
     <div class="limit-card">
       <div class="limit-header">
         <div class="limit-label">Daily Limit</div>
@@ -54,18 +52,13 @@
         <span id="pct-lbl">0% used</span>
       </div>
     </div>
-
     <div class="alert-banner alert-ok" id="alert">You're within your limit</div>
-
-    <!-- Upcoming bills widget -->
-    <div id="bills-widget"></div>
-
-    <!-- Bucket overview -->
-    <div id="buckets-widget"></div>
-
-    <div class="section-label">Today's transactions</div>
-    <div class="tx-list" id="tx-list"></div>
-
+    <div class="home-scroll">
+      <div id="bills-widget"></div>
+      <div id="buckets-widget"></div>
+      <div class="section-label">Today's transactions</div>
+      <div class="tx-list" id="tx-list"></div>
+    </div>
     <div class="btn-row">
       <button class="btn btn-income" onclick="goTo('screen-income')">＋ Income</button>
       <button class="btn btn-expense" onclick="goTo('screen-expense')">－ Expense</button>

@@ -136,6 +136,30 @@ function submitTx(type) {
   goTo('screen-home');
 }
 
+// ── DELETE TRANSACTION ──────────────────
+function deleteTx(id) {
+  const idx = state.transactions.findIndex(t => t.id === id);
+  if (idx === -1) return;
+
+  // animate out
+  const el = document.querySelector(`[data-tx-id="${id}"]`);
+  if (el) {
+    el.classList.add('tx-deleting');
+    setTimeout(() => {
+      state.transactions.splice(idx, 1);
+      saveState();
+      renderHistory();
+      // also refresh home totals if visible
+      const homeActive = document.getElementById('screen-home').classList.contains('active');
+      if (homeActive) renderHome();
+    }, 280);
+  } else {
+    state.transactions.splice(idx, 1);
+    saveState();
+    renderHistory();
+  }
+}
+
 // ── HELPERS ─────────────────────────────
 function todayStr() { return new Date().toDateString(); }
 function fmt(n)     { return 'R' + Math.abs(n).toLocaleString(); }
@@ -271,7 +295,7 @@ function renderBucketsWidget() {
     </div>`;
 }
 
-// ── TX LIST ─────────────────────────────
+// ── TX LIST (home) ───────────────────────
 function renderTxList(todayTx) {
   const list = document.getElementById('tx-list');
   if (!todayTx.length) {
@@ -469,7 +493,6 @@ function markBucketPaid(id) {
 
   b.paidAmount = (b.paidAmount || 0) + pending;
 
-  // Log as expense — this changes the balance
   state.transactions.unshift({
     id:     Date.now(),
     type:   'expense',
@@ -558,34 +581,62 @@ function renderHistory() {
   });
 
   const list = document.getElementById('history-list');
+
   if (!Object.keys(grouped).length) {
-    list.innerHTML = '<div class="tx-empty" style="padding:40px 0">No history yet</div>';
+    list.innerHTML = `
+      <div class="history-empty">
+        <div class="history-empty-icon">📭</div>
+        <div class="history-empty-title">No transactions yet</div>
+        <div class="history-empty-sub">Add income or expenses from the Today tab</div>
+      </div>`;
     return;
   }
 
   list.innerHTML = Object.keys(grouped).map(day => {
-    const txs = grouped[day];
-    const exp = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-    const d   = new Date(day);
+    const txs     = grouped[day];
+    const inc     = txs.filter(t => t.type === 'income').reduce((s, t)  => s + t.amount, 0);
+    const exp     = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const net     = inc - exp;
+    const netPos  = net >= 0;
+    const d       = new Date(day);
+    const isToday = d.toDateString() === new Date().toDateString();
+
     return `
-      <div class="history-day-label">
-        ${DAYS[d.getDay()]}, ${d.toLocaleDateString([], { month:'short', day:'numeric' })}
-        &nbsp;·&nbsp; <span style="color:var(--red)">${fmt(exp)}</span> spent
-      </div>
-      ${txs.map(t => `
-        <div class="tx-item">
-          <div class="tx-left">
-            <div class="tx-icon ${t.type}">${CAT_ICONS[t.cat] || '💸'}</div>
-            <div>
-              <div class="tx-name">${t.note || t.cat}</div>
-              <div class="tx-cat">${t.cat}</div>
-            </div>
+      <div class="history-day-group">
+        <div class="history-day-header">
+          <div class="history-day-left">
+            <div class="history-day-name">${isToday ? 'Today' : DAYS[d.getDay()]}</div>
+            <div class="history-day-date">${d.toLocaleDateString([], { month: 'short', day: 'numeric', year: isToday ? undefined : 'numeric' })}</div>
           </div>
-          <div class="tx-right">
-            <div class="tx-amount ${t.type}">${t.type === 'expense' ? '−' : '+'}${fmt(t.amount)}</div>
-            <div class="tx-time">${new Date(t.date).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}</div>
+          <div class="history-day-summary">
+            ${inc > 0 ? `<span class="history-day-inc">+${fmt(inc)}</span>` : ''}
+            ${exp > 0 ? `<span class="history-day-exp">−${fmt(exp)}</span>` : ''}
+            <span class="history-day-net ${netPos ? 'pos' : 'neg'}">${netPos ? '+' : '−'}${fmt(Math.abs(net))}</span>
           </div>
-        </div>`).join('')}`;
+        </div>
+        <div class="history-tx-group">
+          ${txs.map(t => `
+            <div class="history-tx-item" data-tx-id="${t.id}">
+              <div class="history-tx-icon ${t.type}">${CAT_ICONS[t.cat] || '💸'}</div>
+              <div class="history-tx-middle">
+                <div class="history-tx-label">${t.note || t.cat}</div>
+                <div class="history-tx-meta">
+                  <span class="history-tx-cat">${t.cat}</span>
+                  <span class="history-tx-dot">·</span>
+                  <span class="history-tx-time">${new Date(t.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+              </div>
+              <div class="history-tx-right">
+                <div class="history-tx-amount ${t.type}">${t.type === 'expense' ? '−' : '+'}${fmt(t.amount)}</div>
+                <button class="history-tx-delete" onclick="deleteTx(${t.id})" title="Delete transaction">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M2 3.5h10M5.5 3.5V2.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v1M6 6.5v4M8 6.5v4M3 3.5l.75 7.5a.5.5 0 00.5.5h5.5a.5.5 0 00.5-.5L11 3.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
   }).join('');
 }
 

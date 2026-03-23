@@ -37,10 +37,7 @@ html, body {
 /* ── VIEWPORT SHELL ── */
 #viewport {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -64,10 +61,7 @@ html, body {
   display: none;
   flex-direction: column;
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   overflow: hidden;
 }
 
@@ -309,6 +303,8 @@ html, body {
   border-radius: 14px;
   padding: 12px 14px;
   border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
 }
 
 .bucket-widget-top {
@@ -322,6 +318,36 @@ html, body {
 .bucket-widget-name   { font-size: 12px; color: var(--text2); }
 .bucket-widget-amount { font-size: 18px; font-weight: 700; color: var(--green); }
 .bucket-widget-pct    { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+.bucket-widget-pay-btn {
+  margin-top: 8px;
+  width: 100%;
+  padding: 7px 0;
+  border-radius: 10px;
+  border: none;
+  background: var(--green);
+  color: #0a0a0a;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.bucket-widget-pay-btn:active {
+  transform: scale(0.95);
+  opacity: 0.85;
+}
+
+.bucket-widget-paid-label {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green);
+  text-align: center;
+}
 
 /* ── SECTION LABEL ── */
 .section-label {
@@ -597,6 +623,43 @@ html, body {
   transition: width 0.4s ease;
 }
 
+.bucket-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.bucket-pending {
+  font-size: 12px;
+  color: var(--amber);
+  flex: 1;
+}
+
+.bucket-done {
+  font-size: 12px;
+  color: var(--green);
+  flex: 1;
+}
+
+.bucket-pay-btn {
+  padding: 7px 16px; border-radius: 10px; border: none;
+  background: var(--green); color: #0a0a0a;
+  font-family: inherit; font-size: 12px; font-weight: 700;
+  cursor: pointer; transition: opacity 0.15s, transform 0.1s;
+  -webkit-user-select: none; user-select: none;
+}
+
+.bucket-pay-btn:active { transform: scale(0.95); opacity: 0.85; }
+
+.bucket-unpay-btn {
+  padding: 7px 12px; border-radius: 10px; border: none;
+  background: var(--surface2); color: var(--text3);
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  cursor: pointer;
+}
+
 .bucket-delete-btn {
   background: none; border: none; cursor: pointer;
   font-size: 14px; color: var(--text3); padding: 2px 6px;
@@ -728,53 +791,3 @@ html, body {
 
 .nav-btn.active { color: var(--text); }
 .nav-icon { font-size: 16px; }
-
-/* ── BUCKET CARD FOOTER ── */
-.bucket-card-footer {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  flex-wrap: wrap;
-}
-
-.bucket-pending {
-  font-size: 12px;
-  color: var(--amber);
-  flex: 1;
-}
-
-.bucket-done {
-  font-size: 12px;
-  color: var(--green);
-  flex: 1;
-}
-
-.bucket-pay-btn {
-  padding: 7px 16px;
-  border-radius: 10px;
-  border: none;
-  background: var(--green);
-  color: #0a0a0a;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-.bucket-pay-btn:active { transform: scale(0.95); opacity: 0.85; }
-
-.bucket-unpay-btn {
-  padding: 7px 12px;
-  border-radius: 10px;
-  border: none;
-  background: var(--surface2);
-  color: var(--text3);
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}

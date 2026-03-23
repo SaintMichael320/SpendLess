@@ -123,7 +123,9 @@ function submitTx(type) {
   const cat  = type === 'expense' ? state.ui.expCat : state.ui.incCat;
   const note = document.getElementById(type === 'expense' ? 'exp-note' : 'inc-note').value.trim();
 
-  state.transactions.unshift({ id: Date.now(), type, amount, cat, note, date: new Date().toISOString() });
+  state.transactions.unshift({
+    id: Date.now(), type, amount, cat, note, date: new Date().toISOString()
+  });
 
   if (type === 'income' && state.buckets.length) {
     distributeToBuckets(amount);
@@ -168,10 +170,7 @@ function renderHome() {
 
   const income  = todayTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const expense = todayTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-
-  // Subtract bucket payments from balance — money moved to savings isn't "free" cash
-  const bucketsPaid = state.buckets.reduce((s, b) => s + (b.paidAmount || 0), 0);
-  const balance   = income - expense - bucketsPaid;
+  const balance   = income - expense;
   const remaining = limit - expense;
   const pct       = Math.min(100, Math.round((expense / limit) * 100));
   const stCls     = pct >= 100 ? 'over' : pct >= 75 ? 'warn' : 'ok';
@@ -251,15 +250,21 @@ function renderBucketsWidget() {
       <div class="buckets-widget-label">Buckets</div>
       <div class="buckets-widget-grid">
         ${state.buckets.map(b => {
-          const pending = (b.balance || 0) - (b.paidAmount || 0);
+          const allocated = b.balance || 0;
+          const paid      = b.paidAmount || 0;
+          const pending   = allocated - paid;
           return `
             <div class="bucket-widget-card">
               <div class="bucket-widget-top">
                 <span class="bucket-widget-emoji">${b.emoji || '🪣'}</span>
                 <span class="bucket-widget-name">${b.name}</span>
               </div>
-              <div class="bucket-widget-amount">${fmt(b.paidAmount || 0)}</div>
-              <div class="bucket-widget-pct">${b.pct}% · ${pending > 0 ? fmt(pending) + ' pending' : 'all transferred'}</div>
+              <div class="bucket-widget-amount">${fmt(paid)}</div>
+              <div class="bucket-widget-pct">${b.pct}% · ${fmt(allocated)} allocated</div>
+              ${pending > 0
+                ? `<button class="bucket-widget-pay-btn" onclick="markBucketPaid('${b.id}')">Pay ${fmt(pending)}</button>`
+                : `<div class="bucket-widget-paid-label">✓ Paid</div>`
+              }
             </div>`;
         }).join('')}
       </div>
@@ -351,7 +356,9 @@ function saveBill() {
     return;
   }
 
-  state.bills.push({ id: Date.now().toString(), name, amount, dueDay: day, paid: false, paidMonth: null });
+  state.bills.push({
+    id: Date.now().toString(), name, amount, dueDay: day, paid: false, paidMonth: null
+  });
   saveState();
   closeModal('modal-bill');
   renderBills();
@@ -415,11 +422,11 @@ function renderBuckets() {
   const listEl = document.getElementById('buckets-list');
   listEl.innerHTML = state.buckets.length
     ? state.buckets.map((b, i) => {
-        const color      = BUCKET_COLORS[i % BUCKET_COLORS.length];
-        const allocated  = b.balance || 0;
-        const paid       = b.paidAmount || 0;
-        const pending    = allocated - paid;
-        const fillPct    = allocated > 0 ? Math.min(100, Math.round((paid / allocated) * 100)) : 0;
+        const color     = BUCKET_COLORS[i % BUCKET_COLORS.length];
+        const allocated = b.balance || 0;
+        const paid      = b.paidAmount || 0;
+        const pending   = allocated - paid;
+        const fillPct   = allocated > 0 ? Math.min(100, Math.round((paid / allocated) * 100)) : 0;
 
         return `
           <div class="bucket-card">
@@ -462,14 +469,17 @@ function markBucketPaid(id) {
 
   b.paidAmount = (b.paidAmount || 0) + pending;
 
-  // Log as expense so it shows in transactions and affects balance
+  // Log as expense — this changes the balance
   state.transactions.unshift({
-    id: Date.now(), type: 'expense', amount: pending,
-    cat: 'Other', note: b.name + ' (bucket transfer)', date: new Date().toISOString()
+    id:     Date.now(),
+    type:   'expense',
+    amount: pending,
+    cat:    'Other',
+    note:   b.name + ' (savings transfer)',
+    date:   new Date().toISOString()
   });
 
   saveState();
-  renderBuckets();
   renderHome();
 }
 

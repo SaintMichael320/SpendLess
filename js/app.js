@@ -2,7 +2,6 @@
 // SPENDLESS — app.js
 // ─────────────────────────────────────────
 
-// ── CONSTANTS ──────────────────────────
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
 const CAT_ICONS = {
@@ -18,10 +17,7 @@ let state = {
   bills: [],
   buckets: [],
   settings: { dailyLimit: 200 },
-  ui: {
-    expInput: '0', incInput: '0',
-    expCat: 'Food', incCat: 'Salary'
-  }
+  ui: { expInput: '0', incInput: '0', expCat: 'Food', incCat: 'Salary' }
 };
 
 // ── PERSISTENCE ─────────────────────────
@@ -35,9 +31,7 @@ function loadState() {
     if (cfg) state.settings     = { ...state.settings, ...JSON.parse(cfg) };
     if (bls) state.bills        = JSON.parse(bls);
     if (bks) state.buckets      = JSON.parse(bks);
-  } catch (e) {
-    console.warn('Could not load saved data:', e);
-  }
+  } catch (e) { console.warn('Could not load saved data:', e); }
 }
 
 function saveState() {
@@ -46,16 +40,22 @@ function saveState() {
     localStorage.setItem('sl_cfg',     JSON.stringify(state.settings));
     localStorage.setItem('sl_bills',   JSON.stringify(state.bills));
     localStorage.setItem('sl_buckets', JSON.stringify(state.buckets));
-  } catch (e) {
-    console.warn('Could not save data:', e);
-  }
+  } catch (e) { console.warn('Could not save data:', e); }
+}
+
+// ── LANDING ─────────────────────────────
+function enterApp() {
+  const landing = document.getElementById('screen-landing');
+  landing.style.transition = 'opacity 0.35s ease, transform 0.35s ease';
+  landing.style.opacity    = '0';
+  landing.style.transform  = 'scale(0.98)';
+  setTimeout(() => goTo('screen-home'), 320);
 }
 
 // ── NAVIGATION ──────────────────────────
 function goTo(screenId) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(screenId).classList.add('active');
-
   if (screenId === 'screen-home')     renderHome();
   if (screenId === 'screen-bills')    renderBills();
   if (screenId === 'screen-buckets')  renderBuckets();
@@ -119,29 +119,19 @@ function submitTx(type) {
   const raw    = type === 'expense' ? state.ui.expInput : state.ui.incInput;
   const amount = parseInt(raw);
   if (!amount || amount <= 0) { goTo('screen-home'); return; }
-
   const cat  = type === 'expense' ? state.ui.expCat : state.ui.incCat;
   const note = document.getElementById(type === 'expense' ? 'exp-note' : 'inc-note').value.trim();
-
-  state.transactions.unshift({
-    id: Date.now(), type, amount, cat, note, date: new Date().toISOString()
-  });
-
-  if (type === 'income' && state.buckets.length) {
-    distributeToBuckets(amount);
-  }
-
+  state.transactions.unshift({ id: Date.now(), type, amount, cat, note, date: new Date().toISOString() });
+  if (type === 'income' && state.buckets.length) distributeToBuckets(amount);
   saveState();
   resetForm(type);
   goTo('screen-home');
 }
 
-// ── DELETE TRANSACTION ──────────────────
+// ── DELETE TRANSACTION (history) ────────
 function deleteTx(id) {
   const idx = state.transactions.findIndex(t => t.id === id);
   if (idx === -1) return;
-
-  // animate out
   const el = document.querySelector(`[data-tx-id="${id}"]`);
   if (el) {
     el.classList.add('tx-deleting');
@@ -149,9 +139,7 @@ function deleteTx(id) {
       state.transactions.splice(idx, 1);
       saveState();
       renderHistory();
-      // also refresh home totals if visible
-      const homeActive = document.getElementById('screen-home').classList.contains('active');
-      if (homeActive) renderHome();
+      if (document.getElementById('screen-home').classList.contains('active')) renderHome();
     }, 280);
   } else {
     state.transactions.splice(idx, 1);
@@ -160,38 +148,32 @@ function deleteTx(id) {
   }
 }
 
+// ── DELETE TRANSACTION (home) ───────────
+function deleteTxHome(id) {
+  state.transactions = state.transactions.filter(t => t.id !== id);
+  saveState();
+  renderHome();
+}
+
 // ── HELPERS ─────────────────────────────
 function todayStr() { return new Date().toDateString(); }
 function fmt(n)     { return 'R' + Math.abs(n).toLocaleString(); }
 
 function daysUntilDue(dueDay) {
-  const now   = new Date();
-  const day   = now.getDate();
-  const month = now.getMonth();
-  const year  = now.getFullYear();
-  let target  = new Date(year, month, dueDay);
+  const now = new Date(), day = now.getDate(), month = now.getMonth(), year = now.getFullYear();
+  let target = new Date(year, month, dueDay);
   if (dueDay <= day) target = new Date(year, month + 1, dueDay);
   return Math.ceil((target - now) / (1000 * 60 * 60 * 24));
 }
 
-function dueCls(days) {
-  if (days <= 3) return 'urgent';
-  if (days <= 7) return 'soon';
-  return 'ok';
-}
-
-function dueLabel(days) {
-  if (days === 0) return 'Due today';
-  if (days === 1) return 'Due tomorrow';
-  return `Due in ${days} days`;
-}
+function dueCls(days)  { return days <= 3 ? 'urgent' : days <= 7 ? 'soon' : 'ok'; }
+function dueLabel(days){ return days === 0 ? 'Due today' : days === 1 ? 'Due tomorrow' : `Due in ${days} days`; }
 
 // ── HOME RENDER ─────────────────────────
 function renderHome() {
   const today   = todayStr();
   const limit   = state.settings.dailyLimit;
   const todayTx = state.transactions.filter(t => new Date(t.date).toDateString() === today);
-
   const income  = todayTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const expense = todayTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const balance   = income - expense;
@@ -202,7 +184,6 @@ function renderHome() {
   const now = new Date();
   document.getElementById('clock-home').textContent = now.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
   document.getElementById('home-day').textContent   = DAYS[now.getDay()] + ', ' + now.toLocaleDateString([], { month:'short', day:'numeric' });
-
   document.getElementById('home-balance').textContent = (balance < 0 ? '-' : '') + fmt(balance);
   document.getElementById('meta-inc').textContent     = fmt(income);
   document.getElementById('meta-exp').textContent     = fmt(expense);
@@ -239,27 +220,22 @@ function renderHome() {
 function renderBillsWidget() {
   const el = document.getElementById('bills-widget');
   if (!state.bills.length) { el.innerHTML = ''; return; }
-
   const unpaid  = state.bills.filter(b => !b.paid).sort((a, b) => daysUntilDue(a.dueDay) - daysUntilDue(b.dueDay));
   const urgent2 = unpaid.slice(0, 2);
   if (!urgent2.length) { el.innerHTML = ''; return; }
-
   el.innerHTML = `
     <div class="bills-widget" style="margin-top:10px;">
       <div class="bills-widget-label">Upcoming bills</div>
       ${urgent2.map(b => {
         const days = daysUntilDue(b.dueDay);
         const cls  = dueCls(days);
-        return `
-          <div class="bill-widget-item">
-            <div class="bill-widget-left">
-              <div>
-                <div class="bill-widget-name">${b.name}</div>
-                <div class="bill-widget-due ${cls}">${dueLabel(days)}</div>
-              </div>
-            </div>
-            <div class="bill-widget-amount">${fmt(b.amount)}</div>
-          </div>`;
+        return `<div class="bill-widget-item">
+          <div class="bill-widget-left"><div>
+            <div class="bill-widget-name">${b.name}</div>
+            <div class="bill-widget-due ${cls}">${dueLabel(days)}</div>
+          </div></div>
+          <div class="bill-widget-amount">${fmt(b.amount)}</div>
+        </div>`;
       }).join('')}
     </div>`;
 }
@@ -268,7 +244,6 @@ function renderBillsWidget() {
 function renderBucketsWidget() {
   const el = document.getElementById('buckets-widget');
   if (!state.buckets.length) { el.innerHTML = ''; return; }
-
   el.innerHTML = `
     <div class="buckets-widget" style="margin-top:10px;">
       <div class="buckets-widget-label">Buckets</div>
@@ -277,19 +252,17 @@ function renderBucketsWidget() {
           const allocated = b.balance || 0;
           const paid      = b.paidAmount || 0;
           const pending   = allocated - paid;
-          return `
-            <div class="bucket-widget-card">
-              <div class="bucket-widget-top">
-                <span class="bucket-widget-emoji">${b.emoji || '🪣'}</span>
-                <span class="bucket-widget-name">${b.name}</span>
-              </div>
-              <div class="bucket-widget-amount">${fmt(paid)}</div>
-              <div class="bucket-widget-pct">${b.pct}% · ${fmt(allocated)} allocated</div>
-              ${pending > 0
-                ? `<button class="bucket-widget-pay-btn" onclick="markBucketPaid('${b.id}')">Pay ${fmt(pending)}</button>`
-                : `<div class="bucket-widget-paid-label">✓ Paid</div>`
-              }
-            </div>`;
+          return `<div class="bucket-widget-card">
+            <div class="bucket-widget-top">
+              <span class="bucket-widget-emoji">${b.emoji || '🪣'}</span>
+              <span class="bucket-widget-name">${b.name}</span>
+            </div>
+            <div class="bucket-widget-amount">${fmt(paid)}</div>
+            <div class="bucket-widget-pct">${b.pct}% · ${fmt(allocated)} allocated</div>
+            ${pending > 0
+              ? `<button class="bucket-widget-pay-btn" onclick="markBucketPaid('${b.id}')">Pay ${fmt(pending)}</button>`
+              : `<div class="bucket-widget-paid-label">✓ Paid</div>`}
+          </div>`;
         }).join('')}
       </div>
     </div>`;
@@ -311,9 +284,16 @@ function renderTxList(todayTx) {
           <div class="tx-cat">${t.cat}</div>
         </div>
       </div>
-      <div class="tx-right">
-        <div class="tx-amount ${t.type}">${t.type === 'expense' ? '−' : '+'}${fmt(t.amount)}</div>
-        <div class="tx-time">${new Date(t.date).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}</div>
+      <div class="tx-right" style="display:flex;align-items:center;gap:8px;">
+        <div>
+          <div class="tx-amount ${t.type}">${t.type === 'expense' ? '−' : '+'}${fmt(t.amount)}</div>
+          <div class="tx-time">${new Date(t.date).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}</div>
+        </div>
+        <button class="history-tx-delete" onclick="deleteTxHome(${t.id})" title="Delete">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M2 3.5h10M5.5 3.5V2.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v1M6 6.5v4M8 6.5v4M3 3.5l.75 7.5a.5.5 0 00.5.5h5.5a.5.5 0 00.5-.5L11 3.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
       </div>
     </div>`).join('');
 }
@@ -322,46 +302,41 @@ function renderTxList(todayTx) {
 function renderBills() {
   const totalMonthly = state.bills.reduce((s, b) => s + b.amount, 0);
   const unpaidCount  = state.bills.filter(b => !b.paid).length;
-
   document.getElementById('bills-summary').innerHTML = `
     <div class="bills-summary-total">Monthly commitments</div>
     <div class="bills-summary-amount">${fmt(totalMonthly)}</div>
     <div class="bills-summary-sub">${unpaidCount} of ${state.bills.length} bills still to pay this month</div>`;
 
   const sorted = [...state.bills].sort((a, b) => daysUntilDue(a.dueDay) - daysUntilDue(b.dueDay));
-
   document.getElementById('bills-list').innerHTML = sorted.length
     ? sorted.map(b => {
         const days    = daysUntilDue(b.dueDay);
         const cls     = b.paid ? 'ok' : dueCls(days);
         const cardCls = b.paid ? '' : (cls === 'urgent' ? 'urgent' : cls === 'soon' ? 'soon' : '');
-        return `
-          <div class="bill-card ${cardCls}">
-            <div class="bill-card-left">
-              <div class="bill-card-name">${b.name}</div>
-              <div class="bill-card-due ${b.paid ? 'ok' : cls}">
-                ${b.paid ? '✓ Paid this month' : dueLabel(days) + ' · ' + b.dueDay + ordinal(b.dueDay) + ' of month'}
-              </div>
+        return `<div class="bill-card ${cardCls}">
+          <div class="bill-card-left">
+            <div class="bill-card-name">${b.name}</div>
+            <div class="bill-card-due ${b.paid ? 'ok' : cls}">
+              ${b.paid ? '✓ Paid this month' : dueLabel(days) + ' · ' + b.dueDay + ordinal(b.dueDay) + ' of month'}
             </div>
-            <div class="bill-card-right">
-              <div class="bill-card-amount">${fmt(b.amount)}</div>
-              <button class="bill-pay-btn ${b.paid ? 'paid' : 'unpaid'}" onclick="toggleBillPaid('${b.id}')">
-                ${b.paid ? 'Paid' : 'Pay'}
-              </button>
-              <button class="bill-delete-btn" onclick="deleteBill('${b.id}')">✕</button>
-            </div>
-          </div>`;
+          </div>
+          <div class="bill-card-right">
+            <div class="bill-card-amount">${fmt(b.amount)}</div>
+            <button class="bill-pay-btn ${b.paid ? 'paid' : 'unpaid'}" onclick="toggleBillPaid('${b.id}')">
+              ${b.paid ? 'Paid' : 'Pay'}
+            </button>
+            <button class="bill-delete-btn" onclick="deleteBill('${b.id}')">✕</button>
+          </div>
+        </div>`;
       }).join('')
     : '<div class="tx-empty" style="padding:40px 0">No bills yet — add one below</div>';
 }
 
 function ordinal(n) {
-  const s = ['th','st','nd','rd'];
-  const v = n % 100;
+  const s = ['th','st','nd','rd'], v = n % 100;
   return s[(v - 20) % 10] || s[v] || s[0];
 }
 
-// ── ADD BILL ────────────────────────────
 function openAddBill() {
   document.getElementById('bill-name').value   = '';
   document.getElementById('bill-amount').value = '';
@@ -374,37 +349,26 @@ function saveBill() {
   const name   = document.getElementById('bill-name').value.trim();
   const amount = parseInt(document.getElementById('bill-amount').value);
   const day    = parseInt(document.getElementById('bill-day').value);
-
   if (!name || !amount || !day || day < 1 || day > 28) {
     alert('Please fill in all fields. Due day must be between 1 and 28.');
     return;
   }
-
-  state.bills.push({
-    id: Date.now().toString(), name, amount, dueDay: day, paid: false, paidMonth: null
-  });
+  state.bills.push({ id: Date.now().toString(), name, amount, dueDay: day, paid: false, paidMonth: null });
   saveState();
   closeModal('modal-bill');
   renderBills();
 }
 
 function toggleBillPaid(id) {
-  const bill     = state.bills.find(b => b.id === id);
+  const bill = state.bills.find(b => b.id === id);
   if (!bill) return;
   const nowMonth = new Date().toISOString().slice(0, 7);
-
   if (!bill.paid) {
-    bill.paid      = true;
-    bill.paidMonth = nowMonth;
-    state.transactions.unshift({
-      id: Date.now(), type: 'expense', amount: bill.amount,
-      cat: 'Other', note: bill.name + ' (bill)', date: new Date().toISOString()
-    });
+    bill.paid = true; bill.paidMonth = nowMonth;
+    state.transactions.unshift({ id: Date.now(), type: 'expense', amount: bill.amount, cat: 'Other', note: bill.name + ' (bill)', date: new Date().toISOString() });
   } else {
-    bill.paid      = false;
-    bill.paidMonth = null;
+    bill.paid = false; bill.paidMonth = null;
   }
-
   saveState();
   renderBills();
 }
@@ -419,9 +383,7 @@ function deleteBill(id) {
 function checkBillReset() {
   const nowMonth = new Date().toISOString().slice(0, 7);
   state.bills.forEach(b => {
-    if (b.paid && b.paidMonth && b.paidMonth !== nowMonth) {
-      b.paid = false; b.paidMonth = null;
-    }
+    if (b.paid && b.paidMonth && b.paidMonth !== nowMonth) { b.paid = false; b.paidMonth = null; }
   });
   saveState();
 }
@@ -430,12 +392,10 @@ function checkBillReset() {
 function renderBuckets() {
   const totalPct  = state.buckets.reduce((s, b) => s + b.pct, 0);
   const remaining = 100 - totalPct;
-
-  const barEl    = document.getElementById('pct-remaining-bar');
-  const segments = state.buckets.map((b, i) =>
+  const barEl     = document.getElementById('pct-remaining-bar');
+  const segments  = state.buckets.map((b, i) =>
     `<div class="pct-bar-fill" style="width:${b.pct}%;background:${BUCKET_COLORS[i % BUCKET_COLORS.length]}"></div>`
   ).join('');
-
   barEl.innerHTML = `
     <div class="pct-bar-track">${segments}</div>
     <div class="pct-bar-label">
@@ -451,57 +411,43 @@ function renderBuckets() {
         const paid      = b.paidAmount || 0;
         const pending   = allocated - paid;
         const fillPct   = allocated > 0 ? Math.min(100, Math.round((paid / allocated) * 100)) : 0;
-
-        return `
-          <div class="bucket-card">
-            <div class="bucket-card-top">
-              <div class="bucket-card-left">
-                <div class="bucket-card-emoji">${b.emoji || '🪣'}</div>
-                <div>
-                  <div class="bucket-card-name">${b.name}</div>
-                  <div class="bucket-card-pct">${b.pct}% of income</div>
-                </div>
-              </div>
-              <div class="bucket-card-right">
-                <div class="bucket-card-amount" style="color:${color}">${fmt(paid)}</div>
-                <div class="bucket-card-of">of ${fmt(allocated)} allocated</div>
+        return `<div class="bucket-card">
+          <div class="bucket-card-top">
+            <div class="bucket-card-left">
+              <div class="bucket-card-emoji">${b.emoji || '🪣'}</div>
+              <div>
+                <div class="bucket-card-name">${b.name}</div>
+                <div class="bucket-card-pct">${b.pct}% of income</div>
               </div>
             </div>
-            <div class="bucket-card-bar-track">
-              <div class="bucket-card-bar-fill" style="width:${fillPct}%;background:${color}"></div>
+            <div class="bucket-card-right">
+              <div class="bucket-card-amount" style="color:${color}">${fmt(paid)}</div>
+              <div class="bucket-card-of">of ${fmt(allocated)} allocated</div>
             </div>
-            <div class="bucket-card-footer">
-              ${pending > 0
-                ? `<span class="bucket-pending">${fmt(pending)} pending transfer</span>
-                   <button class="bucket-pay-btn" onclick="markBucketPaid('${b.id}')">Mark Paid</button>`
-                : `<span class="bucket-done">✓ Fully transferred</span>
-                   <button class="bucket-unpay-btn" onclick="unmarkBucketPaid('${b.id}')">Undo</button>`
-              }
-              <button class="bucket-delete-btn" onclick="deleteBucket(${i})">✕ Remove</button>
-            </div>
-          </div>`;
+          </div>
+          <div class="bucket-card-bar-track">
+            <div class="bucket-card-bar-fill" style="width:${fillPct}%;background:${color}"></div>
+          </div>
+          <div class="bucket-card-footer">
+            ${pending > 0
+              ? `<span class="bucket-pending">${fmt(pending)} pending transfer</span>
+                 <button class="bucket-pay-btn" onclick="markBucketPaid('${b.id}')">Mark Paid</button>`
+              : `<span class="bucket-done">✓ Fully transferred</span>
+                 <button class="bucket-unpay-btn" onclick="unmarkBucketPaid('${b.id}')">Undo</button>`}
+            <button class="bucket-delete-btn" onclick="deleteBucket(${i})">✕ Remove</button>
+          </div>
+        </div>`;
       }).join('')
     : '<div class="tx-empty" style="padding:40px 0">No buckets yet — add one below</div>';
 }
 
-// ── BUCKET PAID / UNPAID ─────────────────
 function markBucketPaid(id) {
   const b = state.buckets.find(bk => bk.id === id);
   if (!b) return;
   const pending = (b.balance || 0) - (b.paidAmount || 0);
   if (pending <= 0) return;
-
   b.paidAmount = (b.paidAmount || 0) + pending;
-
-  state.transactions.unshift({
-    id:     Date.now(),
-    type:   'expense',
-    amount: pending,
-    cat:    'Other',
-    note:   b.name + ' (savings transfer)',
-    date:   new Date().toISOString()
-  });
-
+  state.transactions.unshift({ id: Date.now(), type: 'expense', amount: pending, cat: 'Other', note: b.name + ' (savings transfer)', date: new Date().toISOString() });
   saveState();
   renderHome();
 }
@@ -515,7 +461,6 @@ function unmarkBucketPaid(id) {
   renderHome();
 }
 
-// ── ADD BUCKET ───────────────────────────
 function openAddBucket() {
   document.getElementById('bucket-name').value  = '';
   document.getElementById('bucket-emoji').value = '';
@@ -530,22 +475,10 @@ function saveBucket() {
   const name  = document.getElementById('bucket-name').value.trim();
   const emoji = document.getElementById('bucket-emoji').value.trim() || '🪣';
   const pct   = parseInt(document.getElementById('bucket-pct').value);
-
-  if (!name || !pct || pct < 1 || pct > 100) {
-    alert('Please fill in all fields. Percentage must be between 1 and 100.');
-    return;
-  }
-
+  if (!name || !pct || pct < 1 || pct > 100) { alert('Please fill in all fields. Percentage must be between 1 and 100.'); return; }
   const totalUsed = state.buckets.reduce((s, b) => s + b.pct, 0);
-  if (totalUsed + pct > 100) {
-    alert(`Only ${100 - totalUsed}% remaining to allocate.`);
-    return;
-  }
-
-  state.buckets.push({
-    id: Date.now().toString(), name, emoji, pct,
-    balance: 0, totalReceived: 0, paidAmount: 0
-  });
+  if (totalUsed + pct > 100) { alert(`Only ${100 - totalUsed}% remaining to allocate.`); return; }
+  state.buckets.push({ id: Date.now().toString(), name, emoji, pct, balance: 0, totalReceived: 0, paidAmount: 0 });
   saveState();
   closeModal('modal-bucket');
   renderBuckets();
@@ -558,16 +491,14 @@ function deleteBucket(index) {
   renderBuckets();
 }
 
-// ── DISTRIBUTE INCOME TO BUCKETS ─────────
 function distributeToBuckets(amount) {
   state.buckets.forEach(b => {
-    const share     = Math.round(amount * (b.pct / 100));
+    const share = Math.round(amount * (b.pct / 100));
     b.balance       = (b.balance || 0) + share;
     b.totalReceived = (b.totalReceived || 0) + share;
   });
 }
 
-// ── MODAL HELPERS ───────────────────────
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
@@ -581,7 +512,6 @@ function renderHistory() {
   });
 
   const list = document.getElementById('history-list');
-
   if (!Object.keys(grouped).length) {
     list.innerHTML = `
       <div class="history-empty">
@@ -594,7 +524,7 @@ function renderHistory() {
 
   list.innerHTML = Object.keys(grouped).map(day => {
     const txs     = grouped[day];
-    const inc     = txs.filter(t => t.type === 'income').reduce((s, t)  => s + t.amount, 0);
+    const inc     = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
     const exp     = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
     const net     = inc - exp;
     const netPos  = net >= 0;
@@ -606,7 +536,7 @@ function renderHistory() {
         <div class="history-day-header">
           <div class="history-day-left">
             <div class="history-day-name">${isToday ? 'Today' : DAYS[d.getDay()]}</div>
-            <div class="history-day-date">${d.toLocaleDateString([], { month: 'short', day: 'numeric', year: isToday ? undefined : 'numeric' })}</div>
+            <div class="history-day-date">${d.toLocaleDateString([], { month:'short', day:'numeric', year: isToday ? undefined : 'numeric' })}</div>
           </div>
           <div class="history-day-summary">
             ${inc > 0 ? `<span class="history-day-inc">+${fmt(inc)}</span>` : ''}
@@ -623,7 +553,7 @@ function renderHistory() {
                 <div class="history-tx-meta">
                   <span class="history-tx-cat">${t.cat}</span>
                   <span class="history-tx-dot">·</span>
-                  <span class="history-tx-time">${new Date(t.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span class="history-tx-time">${new Date(t.date).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}</span>
                 </div>
               </div>
               <div class="history-tx-right">
@@ -658,15 +588,11 @@ function saveLimit() {
 
 function clearData() {
   if (confirm('Clear all transactions, bills, and buckets? This cannot be undone.')) {
-    state.transactions = [];
-    state.bills        = [];
-    state.buckets      = [];
-    saveState();
-    renderSettings();
+    state.transactions = []; state.bills = []; state.buckets = [];
+    saveState(); renderSettings();
   }
 }
 
-// ── CLOCK ───────────────────────────────
 function updateClock() {
   const el = document.getElementById('clock-home');
   if (el) el.textContent = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
@@ -675,17 +601,14 @@ function updateClock() {
 // ── INIT ────────────────────────────────
 loadState();
 checkBillReset();
-renderHome();
 renderInput('expense');
 renderInput('income');
 updateClock();
 setInterval(updateClock, 30000);
 
-// ── SERVICE WORKER ──────────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/sw.js')
+    navigator.serviceWorker.register('/sw.js')
       .then(() => console.log('SpendLess: service worker registered'))
       .catch(err => console.warn('SpendLess: service worker failed:', err));
   });

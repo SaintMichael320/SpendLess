@@ -672,3 +672,99 @@ html, body {
   from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: none; }
 }
+
+/* ─────────────────────────────────────────────
+   UPDATED LANDING PAGE – Professional Version
+   ───────────────────────────────────────────── */
+
+.landing-headline {
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -2.2px;
+  color: #ffffff;
+  text-align: center;
+  margin-bottom: 16px;
+  opacity: 0;
+  animation: landingFadeUp 0.6s ease 0.2s forwards;
+}
+
+.landing-tagline {
+  font-size: 15.5px;
+  line-height: 1.52;
+  color: var(--text2);
+  text-align: center;
+  max-width: 320px;
+  margin: 0 auto 32px auto;
+  opacity: 0;
+  animation: landingFadeUp 0.6s ease 0.35s forwards;
+}
+
+.btn-landing {
+  width: 100%;
+  max-width: 340px;
+  margin: 0 auto 20px;
+  padding: 18px 24px;
+  border-radius: 20px;
+  border: none;
+  background: #ffffff;
+  color: #0a0a0a;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  cursor: pointer;
+  box-shadow: 0 8px 25px rgba(255, 255, 255, 0.18);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: block;
+}
+
+.btn-landing:active {
+  transform: scale(0.96);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+}
+
+/* Trust Signals */
+.landing-trust {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px 20px;
+  margin: 24px 0 16px;
+  opacity: 0;
+  animation: landingFadeUp 0.6s ease 0.7s forwards;
+}
+
+.landing-trust span {
+  font-size: 13px;
+  color: var(--text3);
+  background: var(--surface);
+  padding: 7px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+/* Visual Hierarchy & Spacing Polish */
+.landing-top {
+  padding-top: 40px;
+}
+
+.landing-divider {
+  margin: 32px auto;
+  width: 48px;
+}
+
+.landing-pills {
+  gap: 18px;
+}
+
+.landing-wordmark {
+  display: none; /* We replaced it with the new headline */
+}
+
+/* Make sure animations still work */
+@keyframes landingFadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}

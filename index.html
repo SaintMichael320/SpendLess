@@ -22,22 +22,13 @@
   <div class="screen active" id="screen-landing">
     <div class="landing-wrap">
       <div class="landing-top">
-
         <div class="landing-badge">
           <span class="landing-badge-dot"></span>
           <span class="landing-badge-text">FINANCIAL DISCIPLINE TOOL</span>
         </div>
-
-        <div class="landing-headline">
-          Control Your Money<br>Before It Controls You
-        </div>
-
-        <div class="landing-tagline">
-          Track spending, manage bills, and stay within your limits — all in one simple app.
-        </div>
-
+        <div class="landing-wordmark">Spend<span>Less</span></div>
+        <div class="landing-tagline">Track your money. Control your spending. Build discipline.</div>
         <div class="landing-divider"></div>
-
         <div class="landing-pills">
           <div class="landing-pill">
             <div class="landing-pill-icon">💸</div>
@@ -62,15 +53,196 @@
           </div>
         </div>
       </div>
-
       <div class="landing-bottom">
-        <button class="btn-landing" onclick="enterApp()">Start Tracking Now</button>
-        <div class="landing-trust">
-          <span>Works offline</span>
-          <span>No account needed</span>
-          <span>100% private • Stored on your device</span>
+        <button class="btn-landing" onclick="enterApp()">Get Started →</button>
+        <div class="landing-footnote">Works offline · No account needed · ZAR</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ HOME SCREEN ══ -->
+  <div class="screen" id="screen-home">
+    <div class="statusbar">
+      <span id="clock-home">9:41</span>
+      <span style="font-weight:700;letter-spacing:0.06em;">SPENDLESS</span>
+      <span style="width:36px"></span>
+    </div>
+    <div class="home-top">
+      <div class="day-label" id="home-day">Monday</div>
+      <div class="balance-row">
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:2px;">net today</div>
+          <div class="balance-big" id="home-balance">R0</div>
         </div>
-        <div class="landing-footnote">Built for South Africans • ZAR only</div>
+        <div class="balance-meta">
+          <div class="meta-item inc">Income <span class="val" id="meta-inc">R0</span></div>
+          <div class="meta-item exp">Expenses <span class="val" id="meta-exp">R0</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="limit-card">
+      <div class="limit-header">
+        <div class="limit-label">Daily Limit</div>
+        <button class="limit-edit" onclick="goTo('screen-settings')">Edit</button>
+      </div>
+      <div class="limit-nums">
+        <div class="limit-remaining ok" id="limit-rem">R200</div>
+        <div class="limit-of" id="limit-of">of R200</div>
+      </div>
+      <div class="progress-track"><div class="progress-fill ok" id="prog" style="width:0%"></div></div>
+      <div class="limit-sub">
+        <span>Spent: <span class="spent-val" id="spent-val">R0</span></span>
+        <span id="pct-lbl">0% used</span>
+      </div>
+    </div>
+    <div class="alert-banner alert-ok" id="alert">You're within your limit</div>
+    <div class="home-scroll">
+      <div id="bills-widget"></div>
+      <div id="buckets-widget"></div>
+      <div class="section-label">Today's transactions</div>
+      <div class="tx-list" id="tx-list"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-income" onclick="goTo('screen-income')">＋ Income</button>
+      <button class="btn btn-expense" onclick="goTo('screen-expense')">－ Expense</button>
+    </div>
+    <div class="nav">
+      <button class="nav-btn active"  onclick="goTo('screen-home')"   ><span class="nav-icon">⬤</span>Today</button>
+      <button class="nav-btn"         onclick="goTo('screen-bills')"  ><span class="nav-icon">📋</span>Bills</button>
+      <button class="nav-btn"         onclick="goTo('screen-buckets')"><span class="nav-icon">🪣</span>Buckets</button>
+      <button class="nav-btn"         onclick="goTo('screen-history')"><span class="nav-icon">☰</span>History</button>
+      <button class="nav-btn"         onclick="goTo('screen-settings')"><span class="nav-icon">◎</span>Settings</button>
+    </div>
+  </div>
+
+  <!-- ══ EXPENSE SCREEN ══ -->
+  <div class="screen" id="screen-expense">
+    <div class="form-header">
+      <div class="back-btn" onclick="goTo('screen-home')">‹</div>
+      <div class="form-title" style="color:var(--red)">Add Expense</div>
+      <div class="cancel-link" onclick="resetForm('expense');goTo('screen-home')">Cancel</div>
+    </div>
+    <div class="form-body">
+      <div>
+        <div class="field-label">Amount</div>
+        <div class="amount-wrap">
+          <div class="currency">R</div>
+          <div class="amount-val expense" id="exp-disp">0<span class="cursor"></span></div>
+        </div>
+      </div>
+      <div>
+        <div class="field-label">Category</div>
+        <div class="cat-grid" id="exp-cats">
+          <button class="cat-btn sel-expense" data-cat="Food"          onclick="pickCat(this,'expense')">🍔 Food</button>
+          <button class="cat-btn"             data-cat="Transport"     onclick="pickCat(this,'expense')">🚌 Transport</button>
+          <button class="cat-btn"             data-cat="Data"          onclick="pickCat(this,'expense')">📶 Data</button>
+          <button class="cat-btn"             data-cat="Entertainment" onclick="pickCat(this,'expense')">🎮 Entertainment</button>
+          <button class="cat-btn"             data-cat="Groceries"     onclick="pickCat(this,'expense')">🛒 Groceries</button>
+          <button class="cat-btn"             data-cat="Other"         onclick="pickCat(this,'expense')">📦 Other</button>
+        </div>
+      </div>
+      <div>
+        <div class="field-label">Note (optional)</div>
+        <input class="note-input" id="exp-note" placeholder="e.g. Lunch at work" autocomplete="off" />
+      </div>
+    </div>
+    <div class="numpad">
+      <button class="numkey" onclick="numTap('expense','1')">1</button>
+      <button class="numkey" onclick="numTap('expense','2')">2</button>
+      <button class="numkey" onclick="numTap('expense','3')">3</button>
+      <button class="numkey" onclick="numTap('expense','4')">4</button>
+      <button class="numkey" onclick="numTap('expense','5')">5</button>
+      <button class="numkey" onclick="numTap('expense','6')">6</button>
+      <button class="numkey" onclick="numTap('expense','7')">7</button>
+      <button class="numkey" onclick="numTap('expense','8')">8</button>
+      <button class="numkey" onclick="numTap('expense','9')">9</button>
+      <button class="numkey key-del" onclick="numDel('expense')">⌫</button>
+      <button class="numkey"         onclick="numTap('expense','0')">0</button>
+      <button class="numkey key-add expense" onclick="submitTx('expense')">Add</button>
+    </div>
+  </div>
+
+  <!-- ══ INCOME SCREEN ══ -->
+  <div class="screen" id="screen-income">
+    <div class="form-header">
+      <div class="back-btn" onclick="goTo('screen-home')">‹</div>
+      <div class="form-title" style="color:var(--green)">Add Income</div>
+      <div class="cancel-link" onclick="resetForm('income');goTo('screen-home')">Cancel</div>
+    </div>
+    <div class="form-body">
+      <div>
+        <div class="field-label">Amount</div>
+        <div class="amount-wrap">
+          <div class="currency">R</div>
+          <div class="amount-val income" id="inc-disp">0<span class="cursor"></span></div>
+        </div>
+      </div>
+      <div>
+        <div class="field-label">Source</div>
+        <div class="cat-grid" id="inc-cats">
+          <button class="cat-btn sel-income" data-cat="Salary"      onclick="pickCat(this,'income')">💼 Salary</button>
+          <button class="cat-btn"            data-cat="Freelance"   onclick="pickCat(this,'income')">💻 Freelance</button>
+          <button class="cat-btn"            data-cat="Side hustle" onclick="pickCat(this,'income')">🌱 Side hustle</button>
+          <button class="cat-btn"            data-cat="Gift"        onclick="pickCat(this,'income')">🎁 Gift</button>
+          <button class="cat-btn"            data-cat="Refund"      onclick="pickCat(this,'income')">↩ Refund</button>
+          <button class="cat-btn"            data-cat="Other"       onclick="pickCat(this,'income')">📦 Other</button>
+        </div>
+      </div>
+      <div>
+        <div class="field-label">Note (optional)</div>
+        <input class="note-input" id="inc-note" placeholder="e.g. March salary" autocomplete="off" />
+      </div>
+    </div>
+    <div class="numpad">
+      <button class="numkey" onclick="numTap('income','1')">1</button>
+      <button class="numkey" onclick="numTap('income','2')">2</button>
+      <button class="numkey" onclick="numTap('income','3')">3</button>
+      <button class="numkey" onclick="numTap('income','4')">4</button>
+      <button class="numkey" onclick="numTap('income','5')">5</button>
+      <button class="numkey" onclick="numTap('income','6')">6</button>
+      <button class="numkey" onclick="numTap('income','7')">7</button>
+      <button class="numkey" onclick="numTap('income','8')">8</button>
+      <button class="numkey" onclick="numTap('income','9')">9</button>
+      <button class="numkey key-del" onclick="numDel('income')">⌫</button>
+      <button class="numkey"         onclick="numTap('income','0')">0</button>
+      <button class="numkey key-add income" onclick="submitTx('income')">Add</button>
+    </div>
+  </div>
+
+  <!-- ══ BILLS SCREEN ══ -->
+  <div class="screen" id="screen-bills">
+    <div class="statusbar">
+      <span></span>
+      <span style="font-weight:700;letter-spacing:0.06em;">BILLS</span>
+      <span></span>
+    </div>
+    <div class="screen-body">
+      <div id="bills-summary" class="bills-summary"></div>
+      <div id="bills-list" class="bills-list"></div>
+      <button class="add-fab" onclick="openAddBill()">＋ Add Bill</button>
+    </div>
+    <div class="nav">
+      <button class="nav-btn"        onclick="goTo('screen-home')"   ><span class="nav-icon">⬤</span>Today</button>
+      <button class="nav-btn active" onclick="goTo('screen-bills')"  ><span class="nav-icon">📋</span>Bills</button>
+      <button class="nav-btn"        onclick="goTo('screen-buckets')"><span class="nav-icon">🪣</span>Buckets</button>
+      <button class="nav-btn"        onclick="goTo('screen-history')"><span class="nav-icon">☰</span>History</button>
+      <button class="nav-btn"        onclick="goTo('screen-settings')"><span class="nav-icon">◎</span>Settings</button>
+    </div>
+  </div>
+
+  <!-- ══ ADD BILL MODAL ══ -->
+  <div class="modal-overlay" id="modal-bill" onclick="closeModal('modal-bill')">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-title">Add Bill</div>
+      <div class="field-label" style="margin-top:4px">Bill name</div>
+      <input class="note-input" id="bill-name" placeholder="e.g. Netflix, Rent, Gym" autocomplete="off" style="margin-bottom:12px"/>
+      <div class="field-label">Amount (R)</div>
+      <input class="note-input" id="bill-amount" type="number" placeholder="0" min="1" autocomplete="off" style="margin-bottom:12px"/>
+      <div class="field-label">Due day of month</div>
+      <input class="note-input" id="bill-day" type="number" placeholder="1–28" min="1" max="28" autocomplete="off" style="margin-bottom:16px"/>
+      <div style="display:flex;gap:10px;">
+        <button class="modal-btn modal-cancel" onclick="closeModal('modal-bill')">Cancel</button>
+        <button class="modal-btn modal-confirm" onclick="saveBill()">Add Bill</button>
       </div>
     </div>
   </div>

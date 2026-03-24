@@ -502,52 +502,104 @@ html, body {
 
 #screen-landing {
   background: var(--bg);
-}
-
-.landing-wrap {
-  height: 100%;
-  padding: max(env(safe-area-inset-top), 48px) 24px max(env(safe-area-inset-bottom), 48px);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.landing-top {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
   justify-content: center;
 }
 
-.landing-headline {
-  font-size: 46px;
-  font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: -2.1px;
-  text-align: center;
-  margin-bottom: 14px;
+.landing-wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  padding: max(env(safe-area-inset-top), 48px) 24px max(env(safe-area-inset-bottom), 40px);
 }
 
-.landing-tagline {
-  font-size: 15px;
-  line-height: 1.5;
+.landing-top {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: center;
+}
+
+/* badge */
+.landing-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 5px 12px 5px 8px;
+  width: fit-content;
+  margin-bottom: 32px;
+  opacity: 0;
+  animation: landingFadeUp 0.5s ease 0.1s forwards;
+}
+
+.landing-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: badgePulse 2s ease infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+.landing-badge-text {
+  font-size: 10px;
+  font-weight: 500;
   color: var(--text2);
-  text-align: center;
-  max-width: 320px;
-  margin: 0 auto 28px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
+/* wordmark */
+.landing-wordmark {
+  font-size: 52px;
+  font-weight: 700;
+  letter-spacing: -2px;
+  line-height: 1;
+  color: var(--text);
+  margin-bottom: 16px;
+  opacity: 0;
+  animation: landingFadeUp 0.5s ease 0.2s forwards;
+}
+
+.landing-wordmark span {
+  color: var(--green);
+}
+
+/* tagline */
+.landing-tagline {
+  font-size: 14px;
+  color: var(--text2);
+  line-height: 1.6;
+  margin-bottom: 28px;
+  opacity: 0;
+  animation: landingFadeUp 0.5s ease 0.3s forwards;
+}
+
+/* divider */
 .landing-divider {
-  width: 48px;
+  width: 28px;
   height: 1px;
   background: var(--border);
-  margin: 28px auto;
+  margin-bottom: 28px;
+  opacity: 0;
+  animation: landingFadeUp 0.5s ease 0.35s forwards;
 }
 
+/* feature pills */
 .landing-pills {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+  opacity: 0;
+  animation: landingFadeUp 0.5s ease 0.45s forwards;
 }
 
 .landing-pill {
@@ -557,7 +609,8 @@ html, body {
 }
 
 .landing-pill-icon {
-  width: 36px; height: 36px;
+  width: 36px;
+  height: 36px;
   border-radius: 11px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -566,44 +619,56 @@ html, body {
   justify-content: center;
   font-size: 16px;
   flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.landing-pill-text strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.landing-pill-text span {
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.5;
+}
+
+/* CTA area */
+.landing-bottom {
+  opacity: 0;
+  animation: landingFadeUp 0.5s ease 0.6s forwards;
 }
 
 .btn-landing {
   width: 100%;
-  max-width: 340px;
-  margin: 0 auto 18px;
-  padding: 17px 24px;
-  border-radius: 20px;
-  background: #ffffff;
-  color: #0a0a0a;
-  font-size: 17px;
+  padding: 16px;
+  border-radius: 18px;
+  border: none;
+  background: var(--text);
+  color: var(--bg);
+  font-family: inherit;
+  font-size: 16px;
   font-weight: 700;
-  box-shadow: 0 8px 25px rgba(255,255,255,0.18);
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
-.landing-trust {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px 18px;
-  margin: 18px 0;
-}
-
-.landing-trust span {
-  font-size: 12.5px;
-  background: var(--surface);
-  padding: 6px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-}
+.btn-landing:active { transform: scale(0.97); opacity: 0.85; }
 
 .landing-footnote {
+  text-align: center;
+  margin-top: 12px;
   font-size: 11px;
   color: var(--text3);
+  letter-spacing: 0.04em;
 }
 
-/* Animation */
 @keyframes landingFadeUp {
   from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: none; }
+  to   { opacity: 1; transform: none; }
 }

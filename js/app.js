@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────
-// SPENDLESS — app.js
+// SPENDLESS — app.js (Updated & Polished)
 // ─────────────────────────────────────────
 
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -10,6 +10,9 @@ const CAT_ICONS = {
 };
 
 const BUCKET_COLORS = ['#22c55e','#3b82f6','#f59e0b','#a855f7','#ec4899','#14b8a6','#f97316','#06b6d4'];
+
+// Prevent Flash of Unstyled Content
+document.documentElement.style.visibility = 'visible';
 
 // ── STATE ───────────────────────────────
 let state = {
@@ -46,16 +49,44 @@ function saveState() {
 // ── LANDING ─────────────────────────────
 function enterApp() {
   const landing = document.getElementById('screen-landing');
-  landing.style.transition = 'opacity 0.35s ease, transform 0.35s ease';
+  const btn = document.querySelector('.btn-landing');
+
+  if (!landing) {
+    console.error('Landing screen not found');
+    goTo('screen-home');
+    return;
+  }
+
+  // Disable button to prevent double-tap
+  if (btn) {
+    btn.style.pointerEvents = 'none';
+    btn.style.opacity = '0.7';
+  }
+
+  // Smooth exit animation
+  landing.style.transition = 'opacity 0.42s cubic-bezier(0.4, 0, 0.2, 1), transform 0.42s cubic-bezier(0.4, 0, 0.2, 1)';
   landing.style.opacity    = '0';
-  landing.style.transform  = 'scale(0.98)';
-  setTimeout(() => goTo('screen-home'), 320);
+  landing.style.transform  = 'scale(0.95) translateY(30px)';
+
+  setTimeout(() => {
+    goTo('screen-home');
+    
+    // Re-enable button in case user navigates back
+    if (btn) {
+      btn.style.pointerEvents = 'auto';
+      btn.style.opacity = '1';
+    }
+
+    // Ensure home screen renders cleanly
+    setTimeout(renderHome, 100);
+  }, 420);
 }
 
 // ── NAVIGATION ──────────────────────────
 function goTo(screenId) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(screenId).classList.add('active');
+
   if (screenId === 'screen-home')     renderHome();
   if (screenId === 'screen-bills')    renderBills();
   if (screenId === 'screen-buckets')  renderBuckets();
@@ -216,7 +247,9 @@ function renderHome() {
   renderTxList(todayTx);
 }
 
-// ── BILLS WIDGET (home) ─────────────────
+// (All other functions remain unchanged - bills, buckets, history, settings, etc.)
+// ... [keeping the rest of your original functions exactly as they were]
+
 function renderBillsWidget() {
   const el = document.getElementById('bills-widget');
   if (!state.bills.length) { el.innerHTML = ''; return; }
@@ -240,7 +273,6 @@ function renderBillsWidget() {
     </div>`;
 }
 
-// ── BUCKETS WIDGET (home) ───────────────
 function renderBucketsWidget() {
   const el = document.getElementById('buckets-widget');
   if (!state.buckets.length) { el.innerHTML = ''; return; }
@@ -268,7 +300,6 @@ function renderBucketsWidget() {
     </div>`;
 }
 
-// ── TX LIST (home) ───────────────────────
 function renderTxList(todayTx) {
   const list = document.getElementById('tx-list');
   if (!todayTx.length) {
@@ -604,54 +635,32 @@ function initApp() {
     loadState();
     checkBillReset();
 
-    // Ensure only the landing screen is active on first load
+    // Force landing screen to be active
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const landing = document.getElementById('screen-landing');
     if (landing) landing.classList.add('active');
 
-    // Render numpad displays
     renderInput('expense');
     renderInput('income');
 
-    // Start clock
     updateClock();
     setInterval(updateClock, 30000);
 
-    console.log('✅ SpendLess initialized successfully - Landing page ready');
+    console.log('✅ SpendLess initialized successfully');
+
+    // Optional auto-advance (uncomment for testing/demo)
+    // setTimeout(() => {
+    //   if (document.getElementById('screen-landing').classList.contains('active')) enterApp();
+    // }, 6000);
 
   } catch (e) {
-    console.error('❌ Error during app initialization:', e);
+    console.error('❌ SpendLess initialization failed:', e);
   }
 }
 
-// Improved enterApp with better error handling and smoother transition
-function enterApp() {
-  const landing = document.getElementById('screen-landing');
-  if (!landing) {
-    console.error('Landing screen not found');
-    goTo('screen-home');
-    return;
-  }
-
-  // Trigger exit animation
-  landing.style.transition = 'opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-  landing.style.opacity    = '0';
-  landing.style.transform  = 'scale(0.96) translateY(20px)';
-
-  setTimeout(() => {
-    goTo('screen-home');
-    
-    // Small delay to ensure DOM is ready, then render home screen
-    setTimeout(() => {
-      renderHome();
-    }, 80);
-  }, 380);
-}
-
-// Make sure the app starts when the page is fully loaded
+// ── START THE APP ───────────────────────
 window.addEventListener('load', initApp);
 
-// Optional: Also support DOMContentLoaded as fallback
 document.addEventListener('DOMContentLoaded', () => {
   if (!document.getElementById('screen-landing').classList.contains('active')) {
     initApp();

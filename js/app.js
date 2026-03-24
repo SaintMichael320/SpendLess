@@ -599,17 +599,61 @@ function updateClock() {
 }
 
 // ── INIT ────────────────────────────────
-loadState();
-checkBillReset();
-renderInput('expense');
-renderInput('income');
-updateClock();
-setInterval(updateClock, 30000);
+function initApp() {
+  try {
+    loadState();
+    checkBillReset();
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(() => console.log('SpendLess: service worker registered'))
-      .catch(err => console.warn('SpendLess: service worker failed:', err));
-  });
+    // Ensure only the landing screen is active on first load
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const landing = document.getElementById('screen-landing');
+    if (landing) landing.classList.add('active');
+
+    // Render numpad displays
+    renderInput('expense');
+    renderInput('income');
+
+    // Start clock
+    updateClock();
+    setInterval(updateClock, 30000);
+
+    console.log('✅ SpendLess initialized successfully - Landing page ready');
+
+  } catch (e) {
+    console.error('❌ Error during app initialization:', e);
+  }
 }
+
+// Improved enterApp with better error handling and smoother transition
+function enterApp() {
+  const landing = document.getElementById('screen-landing');
+  if (!landing) {
+    console.error('Landing screen not found');
+    goTo('screen-home');
+    return;
+  }
+
+  // Trigger exit animation
+  landing.style.transition = 'opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+  landing.style.opacity    = '0';
+  landing.style.transform  = 'scale(0.96) translateY(20px)';
+
+  setTimeout(() => {
+    goTo('screen-home');
+    
+    // Small delay to ensure DOM is ready, then render home screen
+    setTimeout(() => {
+      renderHome();
+    }, 80);
+  }, 380);
+}
+
+// Make sure the app starts when the page is fully loaded
+window.addEventListener('load', initApp);
+
+// Optional: Also support DOMContentLoaded as fallback
+document.addEventListener('DOMContentLoaded', () => {
+  if (!document.getElementById('screen-landing').classList.contains('active')) {
+    initApp();
+  }
+});

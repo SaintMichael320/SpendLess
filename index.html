@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="SpendLess" />
 <link rel="manifest" href="manifest.json" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -20,14 +21,19 @@
 
   <!-- ══ LANDING SCREEN ══ -->
   <div class="screen active" id="screen-landing">
-    <div class="landing-wrap">
+    <div class="landing-inner">
       <div class="landing-top">
         <div class="landing-badge">
           <span class="landing-badge-dot"></span>
-          <span class="landing-badge-text">FINANCIAL DISCIPLINE TOOL</span>
+          <span class="landing-badge-text">Financial Discipline Tool</span>
         </div>
-        <div class="landing-wordmark">Spend<span>Less</span></div>
-        <div class="landing-tagline">Track your money. Control your spending. Build discipline.</div>
+        <div class="landing-headline">
+          Control Your Money<br />
+          <span class="landing-headline-accent">Before It Controls You</span>
+        </div>
+        <div class="landing-subtext">
+          Track spending, manage bills, and stay within your limits — all in one simple app.
+        </div>
         <div class="landing-divider"></div>
         <div class="landing-pills">
           <div class="landing-pill">
@@ -54,50 +60,80 @@
         </div>
       </div>
       <div class="landing-bottom">
-        <button class="btn-landing" onclick="enterApp()">Get Started →</button>
-        <div class="landing-footnote">Works offline · No account needed · ZAR</div>
+        <button class="btn-landing" onclick="enterApp()">Start Tracking →</button>
+        <div class="landing-trust">
+          <div class="landing-trust-item">
+            <span class="landing-trust-icon">📶</span>
+            <span>Works offline</span>
+          </div>
+          <div class="landing-trust-sep"></div>
+          <div class="landing-trust-item">
+            <span class="landing-trust-icon">👤</span>
+            <span>No account needed</span>
+          </div>
+          <div class="landing-trust-sep"></div>
+          <div class="landing-trust-item">
+            <span class="landing-trust-icon">🔒</span>
+            <span>100% private</span>
+          </div>
+        </div>
+        <div class="landing-footnote">Data stored only on your device · ZAR</div>
       </div>
     </div>
   </div>
 
-  <!-- ══ LANDING SCREEN ══ -->
-  <div class="screen active" id="screen-landing">
-    <div class="landing-wrap">
-
-      <div class="landing-top">
-        <div class="landing-badge">
-          <span class="landing-badge-dot"></span>
-          <span class="landing-badge-text">Built for South Africa · ZAR</span>
+  <!-- ══ HOME SCREEN ══ -->
+  <div class="screen" id="screen-home">
+    <div class="statusbar">
+      <span id="clock-home">9:41</span>
+      <span style="font-weight:700;letter-spacing:0.06em;">SPENDLESS</span>
+      <span style="width:36px"></span>
+    </div>
+    <div class="home-top">
+      <div class="day-label" id="home-day">Monday</div>
+      <div class="balance-row">
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:2px;">net today</div>
+          <div class="balance-big" id="home-balance">R0</div>
         </div>
-
-        <div class="landing-headline">Control Your Money<br>Before It Controls<br><span>You.</span></div>
-
-        <div class="landing-sub">Track spending, manage bills, and stay within your limits — all in one simple app.</div>
-
-        <div class="landing-trust">
-          <div class="trust-item">
-            <span class="trust-icon">🔒</span>
-            <span>100% private — stored on your device</span>
-          </div>
-          <div class="trust-item">
-            <span class="trust-icon">📵</span>
-            <span>Works offline, no internet needed</span>
-          </div>
-          <div class="trust-item">
-            <span class="trust-icon">👤</span>
-            <span>No account, no signup, no nonsense</span>
-          </div>
+        <div class="balance-meta">
+          <div class="meta-item inc">Income <span class="val" id="meta-inc">R0</span></div>
+          <div class="meta-item exp">Expenses <span class="val" id="meta-exp">R0</span></div>
         </div>
       </div>
-
-      <div class="landing-bottom">
-        <button class="btn-landing" onclick="enterApp()">
-          <span>Start Tracking</span>
-          <span class="btn-landing-arrow">→</span>
-        </button>
-        <div class="landing-footnote">Free · No ads · No data collection</div>
+    </div>
+    <div class="limit-card">
+      <div class="limit-header">
+        <div class="limit-label">Daily Limit</div>
+        <button class="limit-edit" onclick="goTo('screen-settings')">Edit</button>
       </div>
-
+      <div class="limit-nums">
+        <div class="limit-remaining ok" id="limit-rem">R200</div>
+        <div class="limit-of" id="limit-of">of R200</div>
+      </div>
+      <div class="progress-track"><div class="progress-fill ok" id="prog" style="width:0%"></div></div>
+      <div class="limit-sub">
+        <span>Spent: <span class="spent-val" id="spent-val">R0</span></span>
+        <span id="pct-lbl">0% used</span>
+      </div>
+    </div>
+    <div class="alert-banner alert-ok" id="alert">You're within your limit</div>
+    <div class="home-scroll">
+      <div id="bills-widget"></div>
+      <div id="buckets-widget"></div>
+      <div class="section-label">Today's transactions</div>
+      <div class="tx-list" id="tx-list"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-income" onclick="goTo('screen-income')">＋ Income</button>
+      <button class="btn btn-expense" onclick="goTo('screen-expense')">－ Expense</button>
+    </div>
+    <div class="nav">
+      <button class="nav-btn active"  onclick="goTo('screen-home')"   ><span class="nav-icon">⬤</span>Today</button>
+      <button class="nav-btn"         onclick="goTo('screen-bills')"  ><span class="nav-icon">📋</span>Bills</button>
+      <button class="nav-btn"         onclick="goTo('screen-buckets')"><span class="nav-icon">🪣</span>Buckets</button>
+      <button class="nav-btn"         onclick="goTo('screen-history')"><span class="nav-icon">☰</span>History</button>
+      <button class="nav-btn"         onclick="goTo('screen-settings')"><span class="nav-icon">◎</span>Settings</button>
     </div>
   </div>
 

@@ -307,21 +307,28 @@ function renderHome() {
   document.getElementById('pct-lbl').textContent      = pct + '% used';
   document.getElementById('limit-of').textContent     = 'of ' + fmt(limit);
 
+   // FIX: cap displayed remaining at R0.00 — never show negative
+  const displayRemaining = Math.max(0, remaining);
+  const overspent        = remaining < 0 ? Math.abs(remaining) : 0;
+
   const remEl = document.getElementById('limit-rem');
   remEl.className   = 'limit-remaining ' + stCls;
-  remEl.textContent = (remaining < 0 ? '-' : '') + fmt(Math.abs(remaining));
+  remEl.textContent = fmt(displayRemaining); // always R0.00 or positive
 
   const bar = document.getElementById('prog');
   bar.className   = 'progress-fill ' + stCls;
-  bar.style.width = pct + '%';
+  bar.style.width = pct + '%';           // still caps at 100% via Math.min above
 
   const alertEl = document.getElementById('alert');
   if (pct >= 100) {
-    alertEl.className   = 'alert-banner alert-over';
-    alertEl.textContent = 'Daily limit exceeded — stop spending now';
+    alertEl.className = 'alert-banner alert-over';
+    // Show exactly how much over — clear and actionable
+    alertEl.textContent = overspent > 0
+      ? `Limit exceeded — you've overspent by ${fmt(overspent)}`
+      : 'Daily limit reached — no more spending today';
   } else if (pct >= 75) {
     alertEl.className   = 'alert-banner alert-warn';
-    alertEl.textContent = 'Warning: only ' + fmt(remaining) + ' left today';
+    alertEl.textContent = 'Warning: only ' + fmt(displayRemaining) + ' left today';
   } else {
     alertEl.className   = 'alert-banner alert-ok';
     alertEl.textContent = "You're within your limit — keep it up";

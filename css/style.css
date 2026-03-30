@@ -490,7 +490,7 @@ html, body {
 .numkey { height: 60px; border-radius: 16px; border: none; background: var(--surface2); font-family: inherit; font-size: 22px; font-weight: 600; color: var(--text); cursor: pointer; transition: background 0.1s, transform 0.08s; -webkit-user-select: none; user-select: none; }
 .numkey:active  { background: #333; transform: scale(0.93); }
 .numkey.key-del { font-size: 16px; background: var(--surface); color: var(--text2); }
-.numkey.key-add { font-size: 15px; font-weight: 700; }
+.numkey.key-add { font-size: 15px; font-weight: 700; border-radius: 16px; }
 .numkey.key-add.income  { background: var(--green); color: #0a0a0a; }
 .numkey.key-add.expense { background: var(--red);   color: #ffffff; }
 

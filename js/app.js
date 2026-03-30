@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────
-// SPENDLESS — app.js
+// SPENDLESS — app.js (Tier 1 Fixes Applied)
 // ─────────────────────────────────────────
 
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -76,66 +76,113 @@ window.onpopstate = function(event) {
   }
 };
 
-// ── NUMPAD ──────────────────────────────
+// ── NUMPAD (with decimal support) ───────
 function numTap(type, digit) {
   const key = type === 'expense' ? 'expInput' : 'incInput';
-  state.ui[key] = state.ui[key] === '0' ? digit : state.ui[key] + digit;
-  if (state.ui[key].length > 7) state.ui[key] = state.ui[key].slice(0, 7);
+  let current = state.ui[key];
+
+  // Handle decimal point
+  if (digit === '.') {
+    if (current.includes('.')) return; // already has decimal
+    state.ui[key] = current + '.';
+    renderInput(type);
+    return;
+  }
+
+  // Prevent more than 2 decimal places
+  if (current.includes('.')) {
+    const decimals = current.split('.')[1];
+    if (decimals && decimals.length >= 2) return;
+  }
+
+  // Normal digit
+  if (current === '0') {
+    state.ui[key] = digit;
+  } else {
+    state.ui[key] = current + digit;
+  }
+
+  // Limit total length (excluding the dot)
+  if (state.ui[key].replace('.', '').length > 8) {
+    state.ui[key] = current; // revert
+    return;
+  }
+
   renderInput(type);
 }
 
 function numDel(type) {
   const key = type === 'expense' ? 'expInput' : 'incInput';
-  state.ui[key] = state.ui[key].slice(0, -1) || '0';
+  let current = state.ui[key];
+  if (current.length <= 1) {
+    state.ui[key] = '0';
+  } else {
+    state.ui[key] = current.slice(0, -1);
+  }
   renderInput(type);
 }
 
 function renderInput(type) {
   const key  = type === 'expense' ? 'expInput' : 'incInput';
   const elId = type === 'expense' ? 'exp-disp' : 'inc-disp';
+  const raw  = state.ui[key];
+
+  let display;
+  if (raw.includes('.')) {
+    const parts = raw.split('.');
+    display = parseInt(parts[0]).toLocaleString() + '.' + parts[1];
+  } else {
+    display = parseInt(raw).toLocaleString();
+  }
+
   document.getElementById(elId).innerHTML =
-    parseInt(state.ui[key]).toLocaleString() + '<span class="cursor"></span>';
+    display + '<span class="cursor"></span>';
 }
 
 function resetForm(type) {
   if (type === 'expense') {
-    state.ui.expInput = '0'; state.ui.expCat = 'Food';
+    state.ui.expInput = '0';
     document.getElementById('exp-note').value = '';
     renderInput('expense');
-    document.querySelectorAll('#exp-cats .cat-btn').forEach(b => {
-      b.classList.remove('sel-expense');
-      if (b.dataset.cat === 'Food') b.classList.add('sel-expense');
-    });
+    // Category stays — no reset (Tier 1: category memory)
   } else {
-    state.ui.incInput = '0'; state.ui.incCat = 'Salary';
+    state.ui.incInput = '0';
     document.getElementById('inc-note').value = '';
     renderInput('income');
-    document.querySelectorAll('#inc-cats .cat-btn').forEach(b => {
-      b.classList.remove('sel-income');
-      if (b.dataset.cat === 'Salary') b.classList.add('sel-income');
-    });
+    // Category stays — no reset (Tier 1: category memory)
   }
 }
 
-// ── CATEGORY PICK ───────────────────────
+// ── CATEGORY PICK (with memory) ─────────
 function pickCat(btn, type) {
   const gridId = type === 'expense' ? 'exp-cats' : 'inc-cats';
   const cls    = type === 'expense' ? 'sel-expense' : 'sel-income';
   document.getElementById(gridId).querySelectorAll('.cat-btn').forEach(b => b.classList.remove(cls));
   btn.classList.add(cls);
-  if (type === 'expense') state.ui.expCat = btn.dataset.cat;
-  else                    state.ui.incCat = btn.dataset.cat;
+  if (type === 'expense') {
+    state.ui.expCat = btn.dataset.cat;
+    localStorage.setItem('lastExpenseCategory', btn.dataset.cat);
+  } else {
+    state.ui.incCat = btn.dataset.cat;
+    localStorage.setItem('lastIncomeCategory', btn.dataset.cat);
+  }
 }
 
-// ── SUBMIT TRANSACTION ──────────────────
+// ── SUBMIT TRANSACTION (parseFloat) ─────
 function submitTx(type) {
   const raw    = type === 'expense' ? state.ui.expInput : state.ui.incInput;
-  const amount = parseInt(raw);
-  if (!amount || amount <= 0) { goTo('screen-home'); return; }
+  const amount = parseFloat(raw);
+  if (!amount || amount <= 0 || isNaN(amount)) { goTo('screen-home'); return; }
+
+  // Round to 2 decimal places to avoid float issues
+  const finalAmount = Math.round(amount * 100) / 100;
+
   const cat  = type === 'expense' ? state.ui.expCat : state.ui.incCat;
   const note = document.getElementById(type === 'expense' ? 'exp-note' : 'inc-note').value.trim();
-  state.transactions.unshift({ id: Date.now(), type, amount, cat, note, date: new Date().toISOString() });
-  if (type === 'income' && state.buckets.length) distributeToBuckets(amount);
+  state.transactions.unshift({
+    id: Date.now(), type, amount: finalAmount, cat, note, date: new Date().toISOString()
+  });
+  if (type === 'income' && state.buckets.length) distributeToBuckets(finalAmount);
   saveState();
   resetForm(type);
   goTo('screen-home');
@@ -170,7 +217,17 @@ function deleteTxHome(id) {
 
 // ── HELPERS ─────────────────────────────
 function todayStr() { return new Date().toDateString(); }
-function fmt(n)     { return 'R' + Math.abs(n).toLocaleString(); }
+
+function fmt(n) {
+  const abs = Math.abs(n);
+  if (abs % 1 === 0) {
+    return 'R' + abs.toLocaleString();
+  }
+  return 'R' + abs.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
 
 function daysUntilDue(dueDay) {
   const now = new Date(), day = now.getDate(), month = now.getMonth(), year = now.getFullYear();
@@ -506,7 +563,7 @@ function deleteBucket(index) {
 
 function distributeToBuckets(amount) {
   state.buckets.forEach(b => {
-    const share = Math.round(amount * (b.pct / 100));
+    const share = Math.round(amount * (b.pct / 100) * 100) / 100;
     b.balance       = (b.balance || 0) + share;
     b.totalReceived = (b.totalReceived || 0) + share;
   });
@@ -619,13 +676,33 @@ renderInput('income');
 updateClock();
 setInterval(updateClock, 30000);
 
+// ── RESTORE LAST-USED CATEGORIES (Tier 1: category memory) ──
+(function restoreCategories() {
+  const lastExp = localStorage.getItem('lastExpenseCategory');
+  const lastInc = localStorage.getItem('lastIncomeCategory');
+
+  if (lastExp) {
+    state.ui.expCat = lastExp;
+    document.querySelectorAll('#exp-cats .cat-btn').forEach(b => {
+      b.classList.remove('sel-expense');
+      if (b.dataset.cat === lastExp) b.classList.add('sel-expense');
+    });
+  }
+
+  if (lastInc) {
+    state.ui.incCat = lastInc;
+    document.querySelectorAll('#inc-cats .cat-btn').forEach(b => {
+      b.classList.remove('sel-income');
+      if (b.dataset.cat === lastInc) b.classList.add('sel-income');
+    });
+  }
+})();
+
 // Check if user has already entered the app
 const hasEntered = localStorage.getItem('enteredApp');
 if (hasEntered === 'true') {
-  // Skip landing, go straight to home
   goTo('screen-home');
 } else {
-  // Show landing — push initial state so back button works
   history.replaceState({ page: 'screen-landing' }, '', '#screen-landing');
 }
 

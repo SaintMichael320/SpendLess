@@ -94,11 +94,11 @@
       <div class="balance-row">
         <div>
           <div style="font-size:11px;color:var(--text3);margin-bottom:2px;">net today</div>
-          <div class="balance-big" id="home-balance">R0</div>
+          <div class="balance-big" id="home-balance">R0.00</div>
         </div>
         <div class="balance-meta">
-          <div class="meta-item inc">Income <span class="val" id="meta-inc">R0</span></div>
-          <div class="meta-item exp">Expenses <span class="val" id="meta-exp">R0</span></div>
+          <div class="meta-item inc">Income <span class="val" id="meta-inc">R0.00</span></div>
+          <div class="meta-item exp">Expenses <span class="val" id="meta-exp">R0.00</span></div>
         </div>
       </div>
     </div>
@@ -108,16 +108,23 @@
         <button class="limit-edit" onclick="goTo('screen-settings')">Edit</button>
       </div>
       <div class="limit-nums">
-        <div class="limit-remaining ok" id="limit-rem">R200</div>
-        <div class="limit-of" id="limit-of">of R200</div>
+        <div class="limit-remaining ok" id="limit-rem">R200.00</div>
+        <div class="limit-of" id="limit-of">of R200.00</div>
       </div>
       <div class="progress-track"><div class="progress-fill ok" id="prog" style="width:0%"></div></div>
       <div class="limit-sub">
-        <span>Spent: <span class="spent-val" id="spent-val">R0</span></span>
+        <span>Spent: <span class="spent-val" id="spent-val">R0.00</span></span>
         <span id="pct-lbl">0% used</span>
       </div>
     </div>
     <div class="alert-banner alert-ok" id="alert">You're within your limit</div>
+
+    <!-- ══ ONBOARDING HINT (home) ══ -->
+    <div class="hint-banner" id="hint-home" style="display:none;">
+      <span class="hint-banner-text">👋 Start by adding your first expense or income below</span>
+      <button class="hint-dismiss" onclick="dismissHint('hint-home')">✕</button>
+    </div>
+
     <div class="home-scroll">
       <div id="bills-widget"></div>
       <div id="buckets-widget"></div>
@@ -144,6 +151,12 @@
       <div class="form-title" style="color:var(--red)">Add Expense</div>
       <div class="cancel-link" onclick="onFormClear('expense');goTo('screen-home')">Cancel</div>
     </div>
+
+    <!-- ══ ONBOARDING HINT (expense form) ══ -->
+    <div class="hint-form-tip" id="hint-expense" style="display:none;">
+      💡 Enter amount · pick a category · tap Add Expense
+    </div>
+
     <div class="form-body">
       <div>
         <div class="field-label">Amount</div>
@@ -219,7 +232,7 @@
     <div class="numpad">
       <button class="numkey" onclick="numTap('income','1')">1</button>
       <button class="numkey" onclick="numTap('income','2')">2</button>
-      <button class="numkey" onclick="numTap('income','3')")">3</button>
+      <button class="numkey" onclick="numTap('income','3')">3</button>
       <button class="numkey" onclick="numTap('income','4')">4</button>
       <button class="numkey" onclick="numTap('income','5')">5</button>
       <button class="numkey" onclick="numTap('income','6')">6</button>
@@ -360,7 +373,7 @@
         </div>
         <div class="settings-row">
           <div class="settings-row-label">All-time expenses</div>
-          <div class="settings-row-val" id="stat-expenses">R0</div>
+          <div class="settings-row-val" id="stat-expenses">R0.00</div>
         </div>
         <div class="settings-row">
           <div class="settings-row-label">Active bills</div>

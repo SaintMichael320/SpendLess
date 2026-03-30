@@ -1,5 +1,8 @@
 // ─────────────────────────────────────────
-// SPENDLESS — Fixed app.js
+// SPENDLESS — app.js
+// All fixes: decimal formatting, category
+// reset bug, negative limit display,
+// onboarding hints
 // ─────────────────────────────────────────
 
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -20,10 +23,6 @@ let state = {
   ui: { expInput: '0', incInput: '0', expCat: 'Food', incCat: 'Salary' }
 };
 
-// Track last used categories separately for better persistence
-let lastExpenseCategory = 'Food';
-let lastIncomeCategory = 'Salary';
-
 // ── PERSISTENCE ─────────────────────────
 function loadState() {
   try {
@@ -35,12 +34,6 @@ function loadState() {
     if (cfg) state.settings     = { ...state.settings, ...JSON.parse(cfg) };
     if (bls) state.bills        = JSON.parse(bls);
     if (bks) state.buckets      = JSON.parse(bks);
-    
-    // Load last used categories
-    const lastExp = localStorage.getItem('lastExpenseCategory');
-    const lastInc = localStorage.getItem('lastIncomeCategory');
-    if (lastExp) lastExpenseCategory = lastExp;
-    if (lastInc) lastIncomeCategory = lastInc;
   } catch (e) { console.warn('Could not load saved data:', e); }
 }
 
@@ -50,8 +43,6 @@ function saveState() {
     localStorage.setItem('sl_cfg',     JSON.stringify(state.settings));
     localStorage.setItem('sl_bills',   JSON.stringify(state.bills));
     localStorage.setItem('sl_buckets', JSON.stringify(state.buckets));
-    localStorage.setItem('lastExpenseCategory', lastExpenseCategory);
-    localStorage.setItem('lastIncomeCategory', lastIncomeCategory);
   } catch (e) { console.warn('Could not save data:', e); }
 }
 
@@ -81,42 +72,38 @@ function goTo(screenId, fromPop = false) {
   if (screenId === 'screen-settings') renderSettings();
 }
 
-// ── BACK BUTTON ──────────────────────────
+// ── BACK BUTTON ─────────────────────────
 window.onpopstate = function(event) {
   if (event.state && event.state.page) {
     goTo(event.state.page, true);
   }
 };
 
-// ── NUMPAD (with decimal support) ───────
+// ── NUMPAD ──────────────────────────────
 function numTap(type, digit) {
   const key = type === 'expense' ? 'expInput' : 'incInput';
   let current = state.ui[key];
 
-  // Handle decimal point
   if (digit === '.') {
-    if (current.includes('.')) return; // already has decimal
+    if (current.includes('.')) return;
     state.ui[key] = current + '.';
     renderInput(type);
     return;
   }
 
-  // Prevent more than 2 decimal places
   if (current.includes('.')) {
     const decimals = current.split('.')[1];
     if (decimals && decimals.length >= 2) return;
   }
 
-  // Normal digit
   if (current === '0') {
     state.ui[key] = digit;
   } else {
     state.ui[key] = current + digit;
   }
 
-  // Limit total length (excluding the dot)
   if (state.ui[key].replace('.', '').length > 8) {
-    state.ui[key] = current; // revert
+    state.ui[key] = current;
     return;
   }
 
@@ -134,28 +121,32 @@ function numDel(type) {
   renderInput(type);
 }
 
+// ── RENDER INPUT DISPLAY ─────────────────
+// Uses correct IDs: exp-input-disp / inc-input-disp
+// Shows raw decimal string while typing (15. stays 15.)
+// Integer part gets locale formatting; decimal shown as-is
 function renderInput(type) {
   const key  = type === 'expense' ? 'expInput' : 'incInput';
   const elId = type === 'expense' ? 'exp-input-disp' : 'inc-input-disp';
   const raw  = state.ui[key];
 
-  // Always format with 2 decimal places for display consistency
-  const numValue = parseFloat(raw) || 0;
-  const formatted = numValue.toFixed(2);
-  
-  // Add thousand separators
-  const parts = formatted.split('.');
-  const integerPart = parseInt(parts[0]).toLocaleString();
-  const display = integerPart + '.' + parts[1];
+  let display;
+  if (raw.includes('.')) {
+    const parts  = raw.split('.');
+    const intPart = parts[0] === '' ? '0' : parseInt(parts[0]).toLocaleString();
+    display = intPart + '.' + parts[1];
+  } else {
+    display = parseInt(raw).toLocaleString();
+  }
 
   document.getElementById(elId).innerHTML =
     display + '<span class="cursor"></span>';
 }
 
+// ── RESET FORM ───────────────────────────
+// Only clears amount + note. Category is intentionally NOT reset.
+// Category only changes via pickCat() or after successful submit.
 function resetForm(type) {
-  // NOTE: Category is intentionally NOT reset here
-  // Category persists across inputs and navigation
-  // It should ONLY reset after successful submission
   if (type === 'expense') {
     state.ui.expInput = '0';
     document.getElementById('exp-note').value = '';
@@ -167,72 +158,48 @@ function resetForm(type) {
   }
 }
 
-// ── CATEGORY PICK (with memory) ─────────
+// Called by Cancel buttons in HTML
+function onFormClear(type) {
+  resetForm(type);
+}
+
+// ── CATEGORY PICK ────────────────────────
 function pickCat(btn, type) {
   const gridId = type === 'expense' ? 'exp-cats' : 'inc-cats';
   const cls    = type === 'expense' ? 'sel-expense' : 'sel-income';
   document.getElementById(gridId).querySelectorAll('.cat-btn').forEach(b => b.classList.remove(cls));
   btn.classList.add(cls);
-  
-  const cat = btn.dataset.cat;
-  
   if (type === 'expense') {
-    state.ui.expCat = cat;
-    lastExpenseCategory = cat;
-    localStorage.setItem('lastExpenseCategory', cat);
+    state.ui.expCat = btn.dataset.cat;
+    localStorage.setItem('lastExpenseCategory', btn.dataset.cat);
   } else {
-    state.ui.incCat = cat;
-    lastIncomeCategory = cat;
-    localStorage.setItem('lastIncomeCategory', cat);
+    state.ui.incCat = btn.dataset.cat;
+    localStorage.setItem('lastIncomeCategory', btn.dataset.cat);
   }
 }
 
-// ── SUBMIT TRANSACTION (with proper decimal formatting) ─────
+// ── SUBMIT TRANSACTION ───────────────────
+// Amount stored as parseFloat(toFixed(2)) — always 2 decimal precision
 function submitTransaction(type) {
-  const raw    = type === 'expense' ? state.ui.expInput : state.ui.incInput;
+  const raw  = type === 'expense' ? state.ui.expInput : state.ui.incInput;
   let amount = parseFloat(raw);
-  
-  if (!amount || amount <= 0 || isNaN(amount)) { 
-    goTo('screen-home'); 
-    return; 
-  }
+  if (!amount || amount <= 0 || isNaN(amount)) { goTo('screen-home'); return; }
 
-  // FIX: Format to 2 decimal places BEFORE storing
-  // This ensures "15." becomes "15.00" and "15.5" becomes "15.50"
+  // Enforce 2 decimal place precision on stored value
   amount = parseFloat(amount.toFixed(2));
-  
-  // Round to avoid floating point issues
-  const finalAmount = Math.round(amount * 100) / 100;
 
   const cat  = type === 'expense' ? state.ui.expCat : state.ui.incCat;
   const note = document.getElementById(type === 'expense' ? 'exp-note' : 'inc-note').value.trim();
-  
-  state.transactions.unshift({
-    id: Date.now(), type, amount: finalAmount, cat, note, date: new Date().toISOString()
-  });
-  
-  if (type === 'income' && state.buckets.length) distributeToBuckets(finalAmount);
-  
-  saveState();
-  
-  // FIX: Reset form AFTER successful submission
-  // This is the ONLY place category should potentially reset
-  resetForm(type);
-  
-  // Optional: Reset category to default AFTER submission if desired
-  // Uncomment if you want category to reset to default after each transaction
-  // if (type === 'expense') {
-  //   state.ui.expCat = 'Food';
-  // } else {
-  //   state.ui.incCat = 'Salary';
-  // }
-  
-  goTo('screen-home');
-}
 
-// Alias for compatibility
-function submitTx(type) {
-  submitTransaction(type);
+  state.transactions.unshift({
+    id: Date.now(), type, amount, cat, note, date: new Date().toISOString()
+  });
+
+  if (type === 'income' && state.buckets.length) distributeToBuckets(amount);
+
+  saveState();
+  resetForm(type);       // clears input/note only — category stays
+  goTo('screen-home');
 }
 
 // ── DELETE TRANSACTION (history) ────────
@@ -265,11 +232,10 @@ function deleteTxHome(id) {
 // ── HELPERS ─────────────────────────────
 function todayStr() { return new Date().toDateString(); }
 
-// FIX: fmt() now always shows 2 decimal places
+// Always shows 2 decimal places: R15.00, R1,200.50
 function fmt(n) {
-  if (n === null || n === undefined || isNaN(n)) return 'R0.00';
   const abs = Math.abs(n);
-  return (n < 0 ? '-' : '') + 'R' + abs.toLocaleString(undefined, {
+  return 'R' + abs.toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
@@ -297,19 +263,19 @@ function renderHome() {
   const pct       = Math.min(100, Math.round((expense / limit) * 100));
   const stCls     = pct >= 100 ? 'over' : pct >= 75 ? 'warn' : 'ok';
 
+  // FIX: cap displayed remaining at R0.00 — never show a negative number
+  const displayRemaining = Math.max(0, remaining);
+  const overspentBy      = remaining < 0 ? Math.abs(remaining) : 0;
+
   const now = new Date();
   document.getElementById('clock-home').textContent = now.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
   document.getElementById('home-day').textContent   = DAYS[now.getDay()] + ', ' + now.toLocaleDateString([], { month:'short', day:'numeric' });
-  document.getElementById('home-balance').textContent = (balance < 0 ? '-' : '') + fmt(Math.abs(balance));
+  document.getElementById('home-balance').textContent = (balance < 0 ? '−' : '') + fmt(Math.abs(balance));
   document.getElementById('meta-inc').textContent     = fmt(income);
   document.getElementById('meta-exp').textContent     = fmt(expense);
   document.getElementById('spent-val').textContent    = fmt(expense);
   document.getElementById('pct-lbl').textContent      = pct + '% used';
   document.getElementById('limit-of').textContent     = 'of ' + fmt(limit);
-
-   // FIX: cap displayed remaining at R0.00 — never show negative
-  const displayRemaining = Math.max(0, remaining);
-  const overspent        = remaining < 0 ? Math.abs(remaining) : 0;
 
   const remEl = document.getElementById('limit-rem');
   remEl.className   = 'limit-remaining ' + stCls;
@@ -317,14 +283,14 @@ function renderHome() {
 
   const bar = document.getElementById('prog');
   bar.className   = 'progress-fill ' + stCls;
-  bar.style.width = pct + '%';           // still caps at 100% via Math.min above
+  bar.style.width = pct + '%'; // already capped at 100 via Math.min above
 
   const alertEl = document.getElementById('alert');
   if (pct >= 100) {
-    alertEl.className = 'alert-banner alert-over';
-    // Show exactly how much over — clear and actionable
-    alertEl.textContent = overspent > 0
-      ? `Limit exceeded — you've overspent by ${fmt(overspent)}`
+    alertEl.className   = 'alert-banner alert-over';
+    // Show exact overspend amount — clear and actionable
+    alertEl.textContent = overspentBy > 0
+      ? `Limit exceeded — you've overspent by ${fmt(overspentBy)}`
       : 'Daily limit reached — no more spending today';
   } else if (pct >= 75) {
     alertEl.className   = 'alert-banner alert-warn';
@@ -337,6 +303,11 @@ function renderHome() {
   renderBillsWidget();
   renderBucketsWidget();
   renderTxList(todayTx);
+
+  // Auto-dismiss home hint once user has transactions
+  if (state.transactions.length > 0) {
+    dismissHint('hint-home');
+  }
 }
 
 // ── BILLS WIDGET (home) ─────────────────
@@ -421,7 +392,7 @@ function renderTxList(todayTx) {
     </div>`).join('');
 }
 
-// ── BILLS SCREEN ────────────────────────
+// ── BILLS SCREEN ─────────────────────────
 function renderBills() {
   const totalMonthly = state.bills.reduce((s, b) => s + b.amount, 0);
   const unpaidCount  = state.bills.filter(b => !b.paid).length;
@@ -470,13 +441,13 @@ function openAddBill() {
 
 function saveBill() {
   const name   = document.getElementById('bill-name').value.trim();
-  const amount = parseInt(document.getElementById('bill-amount').value);
+  const amount = parseFloat(document.getElementById('bill-amount').value);
   const day    = parseInt(document.getElementById('bill-day').value);
   if (!name || !amount || !day || day < 1 || day > 28) {
     alert('Please fill in all fields. Due day must be between 1 and 28.');
     return;
   }
-  state.bills.push({ id: Date.now().toString(), name, amount, dueDay: day, paid: false, paidMonth: null });
+  state.bills.push({ id: Date.now().toString(), name, amount: parseFloat(amount.toFixed(2)), dueDay: day, paid: false, paidMonth: null });
   saveState();
   closeModal('modal-bill');
   renderBills();
@@ -572,6 +543,7 @@ function markBucketPaid(id) {
   b.paidAmount = (b.paidAmount || 0) + pending;
   state.transactions.unshift({ id: Date.now(), type: 'expense', amount: pending, cat: 'Other', note: b.name + ' (savings transfer)', date: new Date().toISOString() });
   saveState();
+  renderBuckets();
   renderHome();
 }
 
@@ -625,7 +597,7 @@ function distributeToBuckets(amount) {
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-// ── HISTORY RENDER ──────────────────────
+// ── HISTORY RENDER ───────────────────────
 function renderHistory() {
   const grouped = {};
   state.transactions.forEach(t => {
@@ -693,7 +665,7 @@ function renderHistory() {
   }).join('');
 }
 
-// ── SETTINGS ────────────────────────────
+// ── SETTINGS ─────────────────────────────
 function renderSettings() {
   document.getElementById('limit-input').value        = state.settings.dailyLimit;
   document.getElementById('stat-total').textContent   = state.transactions.length;
@@ -721,34 +693,68 @@ function updateClock() {
   if (el) el.textContent = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
 }
 
-// ── INIT ────────────────────────────────
+// ── ONBOARDING HINTS ─────────────────────
+// Each hint has its own localStorage key.
+// Once dismissed it never appears again.
+
+function initHints() {
+  // Hint 1 — home screen: only if no transactions exist yet
+  if (!localStorage.getItem('hint_home_dismissed') && state.transactions.length === 0) {
+    const el = document.getElementById('hint-home');
+    if (el) el.style.display = 'flex';
+  }
+
+  // Hint 2 — expense form: shown once until dismissed
+  if (!localStorage.getItem('hint_expense_dismissed')) {
+    const el = document.getElementById('hint-expense');
+    if (el) el.style.display = 'block';
+  }
+}
+
+function dismissHint(id) {
+  const el = document.getElementById(id);
+  if (el && el.style.display !== 'none') {
+    el.style.transition = 'opacity 0.2s ease';
+    el.style.opacity    = '0';
+    setTimeout(() => { el.style.display = 'none'; }, 200);
+  }
+  const keyMap = {
+    'hint-home':    'hint_home_dismissed',
+    'hint-expense': 'hint_expense_dismissed'
+  };
+  if (keyMap[id]) localStorage.setItem(keyMap[id], 'true');
+}
+
+// ── RESTORE LAST-USED CATEGORIES ─────────
+(function restoreCategories() {
+  const lastExp = localStorage.getItem('lastExpenseCategory');
+  const lastInc = localStorage.getItem('lastIncomeCategory');
+
+  if (lastExp) {
+    state.ui.expCat = lastExp;
+    document.querySelectorAll('#exp-cats .cat-btn').forEach(b => {
+      b.classList.remove('sel-expense');
+      if (b.dataset.cat === lastExp) b.classList.add('sel-expense');
+    });
+  }
+
+  if (lastInc) {
+    state.ui.incCat = lastInc;
+    document.querySelectorAll('#inc-cats .cat-btn').forEach(b => {
+      b.classList.remove('sel-income');
+      if (b.dataset.cat === lastInc) b.classList.add('sel-income');
+    });
+  }
+})();
+
+// ── INIT ─────────────────────────────────
 loadState();
 checkBillReset();
 renderInput('expense');
 renderInput('income');
+initHints();
 updateClock();
 setInterval(updateClock, 30000);
-
-// ── RESTORE LAST-USED CATEGORIES ──
-function restoreCategories() {
-  // Set initial state to last used categories
-  state.ui.expCat = lastExpenseCategory;
-  state.ui.incCat = lastIncomeCategory;
-  
-  // Update expense category UI
-  document.querySelectorAll('#exp-cats .cat-btn').forEach(b => {
-    b.classList.remove('sel-expense');
-    if (b.dataset.cat === lastExpenseCategory) b.classList.add('sel-expense');
-  });
-  
-  // Update income category UI
-  document.querySelectorAll('#inc-cats .cat-btn').forEach(b => {
-    b.classList.remove('sel-income');
-    if (b.dataset.cat === lastIncomeCategory) b.classList.add('sel-income');
-  });
-}
-
-restoreCategories();
 
 // Check if user has already entered the app
 const hasEntered = localStorage.getItem('enteredApp');

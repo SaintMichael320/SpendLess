@@ -97,7 +97,6 @@ html, body {
   padding: max(env(safe-area-inset-top), 36px) 24px max(env(safe-area-inset-bottom), 32px);
 }
 
-/* ── TOP ── */
 .landing-top {
   display: flex;
   flex-direction: column;
@@ -208,7 +207,6 @@ html, body {
   line-height: 1.5;
 }
 
-/* ── BOTTOM ── */
 .landing-bottom {
   display: flex;
   flex-direction: column;
@@ -373,6 +371,65 @@ html, body {
 .alert-warn { background: var(--amber-bg); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
 .alert-over { background: var(--red-bg);   color: var(--red);   border: 1px solid rgba(239,68,68,0.25); }
 
+/* ══════════════════════════════════════════
+   ONBOARDING HINTS
+   ══════════════════════════════════════════ */
+
+.hint-banner {
+  margin: 10px 14px 0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: var(--blue-bg);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+  animation: fadeIn 0.3s ease;
+  line-height: 1.4;
+}
+
+.hint-banner-text {
+  flex: 1;
+}
+
+.hint-dismiss {
+  background: none;
+  border: none;
+  color: var(--blue);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 2px;
+  opacity: 0.6;
+  flex-shrink: 0;
+  line-height: 1;
+  font-family: inherit;
+}
+
+.hint-dismiss:hover { opacity: 1; }
+
+.hint-form-tip {
+  margin: 0 16px 2px;
+  padding: 8px 14px;
+  background: var(--blue-bg);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  border-radius: 10px;
+  font-size: 11px;
+  color: var(--blue);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  animation: fadeIn 0.3s ease;
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════
+   HOME SCROLL + WIDGETS
+   ══════════════════════════════════════════ */
+
 .home-scroll {
   flex: 1; min-height: 0;
   overflow-y: auto; overflow-x: hidden;
@@ -490,9 +547,27 @@ html, body {
 .numkey { height: 60px; border-radius: 16px; border: none; background: var(--surface2); font-family: inherit; font-size: 22px; font-weight: 600; color: var(--text); cursor: pointer; transition: background 0.1s, transform 0.08s; -webkit-user-select: none; user-select: none; }
 .numkey:active  { background: #333; transform: scale(0.93); }
 .numkey.key-del { font-size: 16px; background: var(--surface); color: var(--text2); }
-.numkey.key-add { font-size: 15px; font-weight: 700; border-radius: 16px; }
-.numkey.key-add.income  { background: var(--green); color: #0a0a0a; }
-.numkey.key-add.expense { background: var(--red);   color: #ffffff; }
+
+.key-add-btn {
+  grid-column: 1 / -1;
+  height: 60px;
+  border-radius: 16px;
+  border: none;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  -webkit-user-select: none;
+  user-select: none;
+  background: var(--green);
+  color: #0a0a0a;
+}
+.key-add-btn:active { transform: scale(0.97); opacity: 0.85; }
+
+/* ══════════════════════════════════════════
+   BILLS
+   ══════════════════════════════════════════ */
 
 .bills-summary { background: var(--surface); border-radius: 18px; padding: 16px 18px; border: 1px solid var(--border); margin-bottom: 14px; }
 .bills-summary-total  { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text2); margin-bottom: 4px; }
@@ -519,6 +594,10 @@ html, body {
 
 .bill-delete-btn { background: none; border: none; cursor: pointer; font-size: 16px; color: var(--text3); padding: 4px; transition: color 0.15s; }
 .bill-delete-btn:hover { color: var(--red); }
+
+/* ══════════════════════════════════════════
+   BUCKETS
+   ══════════════════════════════════════════ */
 
 .buckets-explainer { font-size: 13px; color: var(--text2); margin-bottom: 14px; line-height: 1.5; }
 .pct-bar-wrap  { margin-bottom: 14px; }
@@ -553,6 +632,10 @@ html, body {
 
 .add-fab { margin-top: 16px; width: 100%; padding: 14px; border-radius: 16px; border: 1px dashed var(--border); background: transparent; font-family: inherit; font-size: 14px; font-weight: 600; color: var(--text2); cursor: pointer; transition: border-color 0.15s, color 0.15s; }
 .add-fab:hover { border-color: #555; color: var(--text); }
+
+/* ══════════════════════════════════════════
+   MODALS
+   ══════════════════════════════════════════ */
 
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: flex-end; justify-content: center; backdrop-filter: blur(4px); }
 .modal-overlay.open { display: flex; }

@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────
-// SPENDLESS — app.js (TIER 1 COMPLETE)
+// SPENDLESS — Fixed app.js
 // ─────────────────────────────────────────
 
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -20,6 +20,10 @@ let state = {
   ui: { expInput: '0', incInput: '0', expCat: 'Food', incCat: 'Salary' }
 };
 
+// Track last used categories separately for better persistence
+let lastExpenseCategory = 'Food';
+let lastIncomeCategory = 'Salary';
+
 // ── PERSISTENCE ─────────────────────────
 function loadState() {
   try {
@@ -31,6 +35,12 @@ function loadState() {
     if (cfg) state.settings     = { ...state.settings, ...JSON.parse(cfg) };
     if (bls) state.bills        = JSON.parse(bls);
     if (bks) state.buckets      = JSON.parse(bks);
+    
+    // Load last used categories
+    const lastExp = localStorage.getItem('lastExpenseCategory');
+    const lastInc = localStorage.getItem('lastIncomeCategory');
+    if (lastExp) lastExpenseCategory = lastExp;
+    if (lastInc) lastIncomeCategory = lastInc;
   } catch (e) { console.warn('Could not load saved data:', e); }
 }
 
@@ -40,6 +50,8 @@ function saveState() {
     localStorage.setItem('sl_cfg',     JSON.stringify(state.settings));
     localStorage.setItem('sl_bills',   JSON.stringify(state.bills));
     localStorage.setItem('sl_buckets', JSON.stringify(state.buckets));
+    localStorage.setItem('lastExpenseCategory', lastExpenseCategory);
+    localStorage.setItem('lastIncomeCategory', lastIncomeCategory);
   } catch (e) { console.warn('Could not save data:', e); }
 }
 
@@ -62,32 +74,6 @@ function goTo(screenId, fromPop = false) {
     history.pushState({ page: screenId }, '', '#' + screenId);
   }
 
-  /* ✅ TIER 1: Restore remembered category when opening the screens */
-  if (screenId === 'screen-expense') {
-    const saved = localStorage.getItem('lastCategory_expense');
-    if (saved && state.ui.expCat !== saved) {
-      state.ui.expCat = saved;
-      document.querySelectorAll('#exp-cats .cat-btn').forEach(b => {
-        b.classList.remove('sel-expense');
-        if (b.dataset.cat === saved) b.classList.add('sel-expense');
-      });
-    }
-    renderInput('expense');
-  }
-
-  if (screenId === 'screen-income') {
-    const saved = localStorage.getItem('lastCategory_income');
-    if (saved && state.ui.incCat !== saved) {
-      state.ui.incCat = saved;
-      document.querySelectorAll('#inc-cats .cat-btn').forEach(b => {
-        b.classList.remove('sel-income');
-        if (b.dataset.cat === saved) b.classList.add('sel-income');
-      });
-    }
-    renderInput('income');
-  }
-
-  /* existing render calls */
   if (screenId === 'screen-home')     renderHome();
   if (screenId === 'screen-bills')    renderBills();
   if (screenId === 'screen-buckets')  renderBuckets();
@@ -102,71 +88,89 @@ window.onpopstate = function(event) {
   }
 };
 
-// ── NUMPAD ──────────────────────────────
-/* ✅ TIER 1: Decimal support + multiple dot prevention */
+// ── NUMPAD (with decimal support) ───────
 function numTap(type, digit) {
   const key = type === 'expense' ? 'expInput' : 'incInput';
-  let val = state.ui[key];
-  
+  let current = state.ui[key];
+
+  // Handle decimal point
   if (digit === '.') {
-    if (val.includes('.')) return;            // prevent multiple decimals
-    if (val === '0') val = '0.';
-    else val += '.';
-  } else {
-    if (val === '0') val = digit;            // replace leading zero
-    else val += digit;
-    // keep it simple: max 8 chars total
-    if (val.length > 8) val = val.slice(0, 8);
+    if (current.includes('.')) return; // already has decimal
+    state.ui[key] = current + '.';
+    renderInput(type);
+    return;
   }
-  
-  state.ui[key] = val;
+
+  // Prevent more than 2 decimal places
+  if (current.includes('.')) {
+    const decimals = current.split('.')[1];
+    if (decimals && decimals.length >= 2) return;
+  }
+
+  // Normal digit
+  if (current === '0') {
+    state.ui[key] = digit;
+  } else {
+    state.ui[key] = current + digit;
+  }
+
+  // Limit total length (excluding the dot)
+  if (state.ui[key].replace('.', '').length > 8) {
+    state.ui[key] = current; // revert
+    return;
+  }
+
   renderInput(type);
 }
 
 function numDel(type) {
   const key = type === 'expense' ? 'expInput' : 'incInput';
-  state.ui[key] = state.ui[key].slice(0, -1) || '0';
+  let current = state.ui[key];
+  if (current.length <= 1) {
+    state.ui[key] = '0';
+  } else {
+    state.ui[key] = current.slice(0, -1);
+  }
   renderInput(type);
 }
 
-/* ✅ TIER 1: Show raw value while typing (no forced decimals yet) */
 function renderInput(type) {
   const key  = type === 'expense' ? 'expInput' : 'incInput';
-  const elId = type === 'expense' ? 'exp-disp' : 'inc-disp';
-  document.getElementById(elId).innerHTML = state.ui[key] + '<span class="cursor"></span>';
+  const elId = type === 'expense' ? 'exp-input-disp' : 'inc-input-disp';
+  const raw  = state.ui[key];
+
+  // Always format with 2 decimal places for display consistency
+  const numValue = parseFloat(raw) || 0;
+  const formatted = numValue.toFixed(2);
+  
+  // Add thousand separators
+  const parts = formatted.split('.');
+  const integerPart = parseInt(parts[0]).toLocaleString();
+  const display = integerPart + '.' + parts[1];
+
+  document.getElementById(elId).innerHTML =
+    display + '<span class="cursor"></span>';
 }
 
-/* ✅ TIER 1: Reset ONLY amount & note — category stays selected (memory) */
 function resetForm(type) {
+  // NOTE: Category is intentionally NOT reset here
+  // Category persists across inputs and navigation
+  // It should ONLY reset after successful submission
   if (type === 'expense') {
     state.ui.expInput = '0';
-    const saved = localStorage.getItem('lastCategory_expense');
-    state.ui.expCat = saved || 'Food';
     document.getElementById('exp-note').value = '';
     renderInput('expense');
-    document.querySelectorAll('#exp-cats .cat-btn').forEach(b => {
-      b.classList.remove('sel-expense');
-      if (b.dataset.cat === state.ui.expCat) b.classList.add('sel-expense');
-    });
   } else {
     state.ui.incInput = '0';
-    const saved = localStorage.getItem('lastCategory_income');
-    state.ui.incCat = saved || 'Salary';
     document.getElementById('inc-note').value = '';
     renderInput('income');
-    document.querySelectorAll('#inc-cats .cat-btn').forEach(b => {
-      b.classList.remove('sel-income');
-      if (b.dataset.cat === state.ui.incCat) b.classList.add('sel-income');
-    });
   }
 }
 
-// ── CATEGORY PICK ───────────────────────
-/* ✅ TIER 1: Save last used category to localStorage */
+// ── CATEGORY PICK (with memory) ─────────
 function pickCat(btn, type) {
   const gridId = type === 'expense' ? 'exp-cats' : 'inc-cats';
   const cls    = type === 'expense' ? 'sel-expense' : 'sel-income';
-  
   document.getElementById(gridId).querySelectorAll('.cat-btn').forEach(b => b.classList.remove(cls));
   btn.classList.add(cls);
   
@@ -174,50 +178,61 @@ function pickCat(btn, type) {
   
   if (type === 'expense') {
     state.ui.expCat = cat;
-    localStorage.setItem('lastCategory_expense', cat);
+    lastExpenseCategory = cat;
+    localStorage.setItem('lastExpenseCategory', cat);
   } else {
     state.ui.incCat = cat;
-    localStorage.setItem('lastCategory_income', cat);
+    lastIncomeCategory = cat;
+    localStorage.setItem('lastIncomeCategory', cat);
   }
 }
 
-// ── SUBMIT TRANSACTION ──────────────────
-/* ✅ TIER 1: Auto-format to 2 decimals BEFORE saving; keep category (no reset) */
-function submitTx(type) {
+// ── SUBMIT TRANSACTION (with proper decimal formatting) ─────
+function submitTransaction(type) {
   const raw    = type === 'expense' ? state.ui.expInput : state.ui.incInput;
   let amount = parseFloat(raw);
-  if (!amount || amount <= 0) { goTo('screen-home'); return; }
   
-  // ✅ Ensure exactly 2 decimal places, store as number
+  if (!amount || amount <= 0 || isNaN(amount)) { 
+    goTo('screen-home'); 
+    return; 
+  }
+
+  // FIX: Format to 2 decimal places BEFORE storing
+  // This ensures "15." becomes "15.00" and "15.5" becomes "15.50"
   amount = parseFloat(amount.toFixed(2));
   
+  // Round to avoid floating point issues
+  const finalAmount = Math.round(amount * 100) / 100;
+
   const cat  = type === 'expense' ? state.ui.expCat : state.ui.incCat;
   const note = document.getElementById(type === 'expense' ? 'exp-note' : 'inc-note').value.trim();
   
-  state.transactions.unshift({ 
-    id: Date.now(), 
-    type, 
-    amount: amount, 
-    cat, 
-    note, 
-    date: new Date().toISOString() 
+  state.transactions.unshift({
+    id: Date.now(), type, amount: finalAmount, cat, note, date: new Date().toISOString()
   });
   
-  if (type === 'income' && state.buckets.length) distributeToBuckets(amount);
+  if (type === 'income' && state.buckets.length) distributeToBuckets(finalAmount);
+  
   saveState();
   
-  // ✅ Reset ONLY amount & note — category intentionally NOT reset (smooth repeated input)
-  if (type === 'expense') {
-    state.ui.expInput = '0';
-    document.getElementById('exp-note').value = '';
-    renderInput('expense');
-  } else {
-    state.ui.incInput = '0';
-    document.getElementById('inc-note').value = '';
-    renderInput('income');
-  }
+  // FIX: Reset form AFTER successful submission
+  // This is the ONLY place category should potentially reset
+  resetForm(type);
+  
+  // Optional: Reset category to default AFTER submission if desired
+  // Uncomment if you want category to reset to default after each transaction
+  // if (type === 'expense') {
+  //   state.ui.expCat = 'Food';
+  // } else {
+  //   state.ui.incCat = 'Salary';
+  // }
   
   goTo('screen-home');
+}
+
+// Alias for compatibility
+function submitTx(type) {
+  submitTransaction(type);
 }
 
 // ── DELETE TRANSACTION (history) ────────
@@ -250,11 +265,14 @@ function deleteTxHome(id) {
 // ── HELPERS ─────────────────────────────
 function todayStr() { return new Date().toDateString(); }
 
-/* ✅ TIER 1: Always display exactly 2 decimal places */
+// FIX: fmt() now always shows 2 decimal places
 function fmt(n) {
-  const num = Number(n);
-  if (isNaN(num)) return 'R0.00';
-  return 'R' + num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (n === null || n === undefined || isNaN(n)) return 'R0.00';
+  const abs = Math.abs(n);
+  return (n < 0 ? '-' : '') + 'R' + abs.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
 }
 
 function daysUntilDue(dueDay) {
@@ -282,7 +300,7 @@ function renderHome() {
   const now = new Date();
   document.getElementById('clock-home').textContent = now.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
   document.getElementById('home-day').textContent   = DAYS[now.getDay()] + ', ' + now.toLocaleDateString([], { month:'short', day:'numeric' });
-  document.getElementById('home-balance').textContent = (balance < 0 ? '-' : '') + fmt(balance);
+  document.getElementById('home-balance').textContent = (balance < 0 ? '-' : '') + fmt(Math.abs(balance));
   document.getElementById('meta-inc').textContent     = fmt(income);
   document.getElementById('meta-exp').textContent     = fmt(expense);
   document.getElementById('spent-val').textContent    = fmt(expense);
@@ -291,7 +309,7 @@ function renderHome() {
 
   const remEl = document.getElementById('limit-rem');
   remEl.className   = 'limit-remaining ' + stCls;
-  remEl.textContent = (remaining < 0 ? '-' : '') + fmt(remaining);
+  remEl.textContent = (remaining < 0 ? '-' : '') + fmt(Math.abs(remaining));
 
   const bar = document.getElementById('prog');
   bar.className   = 'progress-fill ' + stCls;
@@ -591,7 +609,7 @@ function deleteBucket(index) {
 
 function distributeToBuckets(amount) {
   state.buckets.forEach(b => {
-    const share = Math.round(amount * (b.pct / 100));
+    const share = Math.round(amount * (b.pct / 100) * 100) / 100;
     b.balance       = (b.balance || 0) + share;
     b.totalReceived = (b.totalReceived || 0) + share;
   });
@@ -612,4 +630,131 @@ function renderHistory() {
   const list = document.getElementById('history-list');
   if (!Object.keys(grouped).length) {
     list.innerHTML = `
-     
+      <div class="history-empty">
+        <div class="history-empty-icon">📭</div>
+        <div class="history-empty-title">No transactions yet</div>
+        <div class="history-empty-sub">Add income or expenses from the Today tab</div>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = Object.keys(grouped).map(day => {
+    const txs     = grouped[day];
+    const inc     = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const exp     = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const net     = inc - exp;
+    const netPos  = net >= 0;
+    const d       = new Date(day);
+    const isToday = d.toDateString() === new Date().toDateString();
+
+    return `
+      <div class="history-day-group">
+        <div class="history-day-header">
+          <div class="history-day-left">
+            <div class="history-day-name">${isToday ? 'Today' : DAYS[d.getDay()]}</div>
+            <div class="history-day-date">${d.toLocaleDateString([], { month:'short', day:'numeric', year: isToday ? undefined : 'numeric' })}</div>
+          </div>
+          <div class="history-day-summary">
+            ${inc > 0 ? `<span class="history-day-inc">+${fmt(inc)}</span>` : ''}
+            ${exp > 0 ? `<span class="history-day-exp">−${fmt(exp)}</span>` : ''}
+            <span class="history-day-net ${netPos ? 'pos' : 'neg'}">${netPos ? '+' : '−'}${fmt(Math.abs(net))}</span>
+          </div>
+        </div>
+        <div class="history-tx-group">
+          ${txs.map(t => `
+            <div class="history-tx-item" data-tx-id="${t.id}">
+              <div class="history-tx-icon ${t.type}">${CAT_ICONS[t.cat] || '💸'}</div>
+              <div class="history-tx-middle">
+                <div class="history-tx-label">${t.note || t.cat}</div>
+                <div class="history-tx-meta">
+                  <span class="history-tx-cat">${t.cat}</span>
+                  <span class="history-tx-dot">·</span>
+                  <span class="history-tx-time">${new Date(t.date).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}</span>
+                </div>
+              </div>
+              <div class="history-tx-right">
+                <div class="history-tx-amount ${t.type}">${t.type === 'expense' ? '−' : '+'}${fmt(t.amount)}</div>
+                <button class="history-tx-delete" onclick="deleteTx(${t.id})" title="Delete transaction">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M2 3.5h10M5.5 3.5V2.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v1M6 6.5v4M8 6.5v4M3 3.5l.75 7.5a.5.5 0 00.5.5h5.5a.5.5 0 00.5-.5L11 3.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── SETTINGS ────────────────────────────
+function renderSettings() {
+  document.getElementById('limit-input').value        = state.settings.dailyLimit;
+  document.getElementById('stat-total').textContent   = state.transactions.length;
+  document.getElementById('stat-days').textContent    = new Set(state.transactions.map(t => new Date(t.date).toDateString())).size;
+  document.getElementById('stat-bills').textContent   = state.bills.length;
+  document.getElementById('stat-buckets').textContent = state.buckets.length;
+  const allExp = state.transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  document.getElementById('stat-expenses').textContent = fmt(allExp);
+}
+
+function saveLimit() {
+  const v = parseInt(document.getElementById('limit-input').value);
+  if (v > 0) { state.settings.dailyLimit = v; saveState(); }
+}
+
+function clearData() {
+  if (confirm('Clear all transactions, bills, and buckets? This cannot be undone.')) {
+    state.transactions = []; state.bills = []; state.buckets = [];
+    saveState(); renderSettings();
+  }
+}
+
+function updateClock() {
+  const el = document.getElementById('clock-home');
+  if (el) el.textContent = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+}
+
+// ── INIT ────────────────────────────────
+loadState();
+checkBillReset();
+renderInput('expense');
+renderInput('income');
+updateClock();
+setInterval(updateClock, 30000);
+
+// ── RESTORE LAST-USED CATEGORIES ──
+function restoreCategories() {
+  // Set initial state to last used categories
+  state.ui.expCat = lastExpenseCategory;
+  state.ui.incCat = lastIncomeCategory;
+  
+  // Update expense category UI
+  document.querySelectorAll('#exp-cats .cat-btn').forEach(b => {
+    b.classList.remove('sel-expense');
+    if (b.dataset.cat === lastExpenseCategory) b.classList.add('sel-expense');
+  });
+  
+  // Update income category UI
+  document.querySelectorAll('#inc-cats .cat-btn').forEach(b => {
+    b.classList.remove('sel-income');
+    if (b.dataset.cat === lastIncomeCategory) b.classList.add('sel-income');
+  });
+}
+
+restoreCategories();
+
+// Check if user has already entered the app
+const hasEntered = localStorage.getItem('enteredApp');
+if (hasEntered === 'true') {
+  goTo('screen-home');
+} else {
+  history.replaceState({ page: 'screen-landing' }, '', '#screen-landing');
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(() => console.log('SpendLess: service worker registered'))
+      .catch(err => console.warn('SpendLess: service worker failed:', err));
+  });
+}

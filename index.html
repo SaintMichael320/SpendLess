@@ -142,14 +142,14 @@
     <div class="form-header">
       <div class="back-btn" onclick="goTo('screen-home')">‹</div>
       <div class="form-title" style="color:var(--red)">Add Expense</div>
-      <div class="cancel-link" onclick="resetForm('expense');goTo('screen-home')">Cancel</div>
+      <div class="cancel-link" onclick="onFormClear('expense');goTo('screen-home')">Cancel</div>
     </div>
     <div class="form-body">
       <div>
         <div class="field-label">Amount</div>
         <div class="amount-wrap">
           <div class="currency">R</div>
-          <div class="amount-val expense" id="exp-disp">0<span class="cursor"></span></div>
+          <div class="amount-val" id="exp-input-disp">0<span class="cursor"></span></div>
         </div>
       </div>
       <div>
@@ -168,7 +168,6 @@
         <input class="note-input" id="exp-note" placeholder="e.g. Lunch at work" autocomplete="off" />
       </div>
     </div>
-    <!-- ✅ TIER 1: Decimal button added + Add spans full width -->
     <div class="numpad">
       <button class="numkey" onclick="numTap('expense','1')">1</button>
       <button class="numkey" onclick="numTap('expense','2')">2</button>
@@ -179,12 +178,10 @@
       <button class="numkey" onclick="numTap('expense','7')">7</button>
       <button class="numkey" onclick="numTap('expense','8')">8</button>
       <button class="numkey" onclick="numTap('expense','9')">9</button>
-
       <button class="numkey" onclick="numTap('expense','.')">.</button>
-      <button class="numkey"         onclick="numTap('expense','0')">0</button>
+      <button class="numkey" onclick="numTap('expense','0')">0</button>
       <button class="numkey key-del" onclick="numDel('expense')">⌫</button>
-
-      <button class="numkey key-add expense" onclick="submitTx('expense')" style="grid-column: span 3;">Add</button>
+      <button class="key-add-btn" onclick="submitTransaction('expense')">Add Expense</button>
     </div>
   </div>
 
@@ -193,14 +190,14 @@
     <div class="form-header">
       <div class="back-btn" onclick="goTo('screen-home')">‹</div>
       <div class="form-title" style="color:var(--green)">Add Income</div>
-      <div class="cancel-link" onclick="resetForm('income');goTo('screen-home')">Cancel</div>
+      <div class="cancel-link" onclick="onFormClear('income');goTo('screen-home')">Cancel</div>
     </div>
     <div class="form-body">
       <div>
         <div class="field-label">Amount</div>
         <div class="amount-wrap">
           <div class="currency">R</div>
-          <div class="amount-val income" id="inc-disp">0<span class="cursor"></span></div>
+          <div class="amount-val" id="inc-input-disp">0<span class="cursor"></span></div>
         </div>
       </div>
       <div>
@@ -219,23 +216,20 @@
         <input class="note-input" id="inc-note" placeholder="e.g. March salary" autocomplete="off" />
       </div>
     </div>
-    <!-- ✅ TIER 1: Decimal button added + Add spans full width -->
     <div class="numpad">
       <button class="numkey" onclick="numTap('income','1')">1</button>
       <button class="numkey" onclick="numTap('income','2')">2</button>
-      <button class="numkey" onclick="numTap('income','3')">3</button>
+      <button class="numkey" onclick="numTap('income','3')")">3</button>
       <button class="numkey" onclick="numTap('income','4')">4</button>
       <button class="numkey" onclick="numTap('income','5')">5</button>
       <button class="numkey" onclick="numTap('income','6')">6</button>
       <button class="numkey" onclick="numTap('income','7')">7</button>
       <button class="numkey" onclick="numTap('income','8')">8</button>
       <button class="numkey" onclick="numTap('income','9')">9</button>
-
       <button class="numkey" onclick="numTap('income','.')">.</button>
-      <button class="numkey"         onclick="numTap('income','0')">0</button>
+      <button class="numkey" onclick="numTap('income','0')">0</button>
       <button class="numkey key-del" onclick="numDel('income')">⌫</button>
-
-      <button class="numkey key-add income" onclick="submitTx('income')" style="grid-column: span 3;">Add</button>
+      <button class="key-add-btn" onclick="submitTransaction('income')">Add Income</button>
     </div>
   </div>
 

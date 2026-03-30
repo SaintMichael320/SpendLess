@@ -168,6 +168,7 @@
         <input class="note-input" id="exp-note" placeholder="e.g. Lunch at work" autocomplete="off" />
       </div>
     </div>
+    <!-- ✅ TIER 1: Decimal button added + Add spans full width -->
     <div class="numpad">
       <button class="numkey" onclick="numTap('expense','1')">1</button>
       <button class="numkey" onclick="numTap('expense','2')">2</button>
@@ -178,10 +179,12 @@
       <button class="numkey" onclick="numTap('expense','7')">7</button>
       <button class="numkey" onclick="numTap('expense','8')">8</button>
       <button class="numkey" onclick="numTap('expense','9')">9</button>
+
       <button class="numkey" onclick="numTap('expense','.')">.</button>
-      <button class="numkey" onclick="numTap('expense','0')">0</button>
+      <button class="numkey"         onclick="numTap('expense','0')">0</button>
       <button class="numkey key-del" onclick="numDel('expense')">⌫</button>
-      <button class="numkey key-add expense" onclick="submitTx('expense')" style="grid-column:1/-1;height:52px;">Add Expense</button>
+
+      <button class="numkey key-add expense" onclick="submitTx('expense')" style="grid-column: span 3;">Add</button>
     </div>
   </div>
 
@@ -216,6 +219,7 @@
         <input class="note-input" id="inc-note" placeholder="e.g. March salary" autocomplete="off" />
       </div>
     </div>
+    <!-- ✅ TIER 1: Decimal button added + Add spans full width -->
     <div class="numpad">
       <button class="numkey" onclick="numTap('income','1')">1</button>
       <button class="numkey" onclick="numTap('income','2')">2</button>
@@ -226,10 +230,12 @@
       <button class="numkey" onclick="numTap('income','7')">7</button>
       <button class="numkey" onclick="numTap('income','8')">8</button>
       <button class="numkey" onclick="numTap('income','9')">9</button>
+
       <button class="numkey" onclick="numTap('income','.')">.</button>
-      <button class="numkey" onclick="numTap('income','0')">0</button>
+      <button class="numkey"         onclick="numTap('income','0')">0</button>
       <button class="numkey key-del" onclick="numDel('income')">⌫</button>
-      <button class="numkey key-add income" onclick="submitTx('income')" style="grid-column:1/-1;height:52px;">Add Income</button>
+
+      <button class="numkey key-add income" onclick="submitTx('income')" style="grid-column: span 3;">Add</button>
     </div>
   </div>
 

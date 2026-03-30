@@ -45,6 +45,7 @@ function saveState() {
 
 // ── LANDING ─────────────────────────────
 function enterApp() {
+  localStorage.setItem('enteredApp', 'true');
   const landing = document.getElementById('screen-landing');
   landing.style.transition = 'opacity 0.35s ease, transform 0.35s ease';
   landing.style.opacity    = '0';
@@ -53,15 +54,27 @@ function enterApp() {
 }
 
 // ── NAVIGATION ──────────────────────────
-function goTo(screenId) {
+function goTo(screenId, fromPop = false) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(screenId).classList.add('active');
+
+  if (!fromPop) {
+    history.pushState({ page: screenId }, '', '#' + screenId);
+  }
+
   if (screenId === 'screen-home')     renderHome();
   if (screenId === 'screen-bills')    renderBills();
   if (screenId === 'screen-buckets')  renderBuckets();
   if (screenId === 'screen-history')  renderHistory();
   if (screenId === 'screen-settings') renderSettings();
 }
+
+// ── BACK BUTTON ──────────────────────────
+window.onpopstate = function(event) {
+  if (event.state && event.state.page) {
+    goTo(event.state.page, true);
+  }
+};
 
 // ── NUMPAD ──────────────────────────────
 function numTap(type, digit) {
@@ -605,6 +618,16 @@ renderInput('expense');
 renderInput('income');
 updateClock();
 setInterval(updateClock, 30000);
+
+// Check if user has already entered the app
+const hasEntered = localStorage.getItem('enteredApp');
+if (hasEntered === 'true') {
+  // Skip landing, go straight to home
+  goTo('screen-home');
+} else {
+  // Show landing — push initial state so back button works
+  history.replaceState({ page: 'screen-landing' }, '', '#screen-landing');
+}
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
